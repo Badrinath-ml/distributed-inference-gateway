@@ -76,7 +76,7 @@ in `.env` even when Worker 1 is disabled.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/health` | Process liveness (always `200` while the app runs; does not include worker health). |
-| `GET` | `/health/workers` | Registry snapshot: metadata, health state, availability, in-flight count, last error. |
+| `GET` | `/health/workers` | Registry snapshot: metadata, health state, availability, in-flight count, last error. |\n| `GET` | `/dashboard` | Browser-based inference evaluation console. |\n| `GET` | `/api/metrics/overview` | Bounded request telemetry, latency percentiles, errors and failovers. |\n| `GET` | `/api/metrics/workers` | Worker registry snapshot for dashboard. |\n| `GET` | `/api/metrics/recent?limit=100` | Recent request samples (maximum 200). |\n| `GET` | `/api/testing/capabilities` | Reports whether mock-only fault injection is enabled. |\n| `POST` | `/api/testing/faults` | Explicitly confirmed mock-worker fault action; disabled by default. |
 | `POST` | `/v1/chat/completions` | OpenAI-compatible chat completion; supports `stream: true`. |
 
 Responses include `X-Semantic-Category` and `X-Worker-Id` headers. Streaming
