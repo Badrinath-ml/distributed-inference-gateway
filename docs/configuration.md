@@ -121,3 +121,14 @@ OPENROUTER_MODEL=liquid/lfm-3-1.7b:free
 - Startup logs list worker metadata but not credentials.
 - `.env.example` contains placeholders only. Check your local `.env` before
   sharing logs or archives.
+
+
+## Evaluation dashboard
+
+- `/dashboard` serves the built-in browser evaluation console.
+- `DASHBOARD_FAULT_INJECTION_ENABLED=false` is the safe default. Set it to
+  `true` only on a development instance with a registered mock worker. Every
+  fault action requires explicit confirmation and can only target provider
+  `mock`; real local/cloud workers are rejected server-side.
+- Request telemetry is in-memory with a fixed 2,000-sample window. It resets
+  when the gateway process restarts.
