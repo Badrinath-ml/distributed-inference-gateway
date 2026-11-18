@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
+
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 
 import torch
@@ -10,6 +13,7 @@ from app.config import settings
 from app.services.embeddings import EmbeddingExecutor
 from app.services.health import HealthMonitor
 from app.services.inference import generate_completion, stream_completion
+from app.services.metrics import MetricsMiddleware, metrics
 from app.services.registry import WorkerRegistry
 from app.services.router import SemanticRouter
 from app.services.scheduler import NoEligibleWorkersError, WorkerScheduler
@@ -144,6 +148,78 @@ app = FastAPI(
     title="Distributed Inference Gateway",
     lifespan=lifespan,
 )
+app.add_middleware(MetricsMiddleware, store=metrics)
+
+
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard():
+    return FileResponse(Path(__file__).resolve().parent.parent / "dashboard" / "index.html")
+
+
+@app.get("/api/metrics/overview")
+async def metrics_overview():
+    return metrics.snapshot()
+
+
+@app.get("/api/metrics/workers")
+async def metrics_workers(request: Request):
+    return {"workers": request.app.state.worker_registry.snapshot()}
+
+
+@app.get("/api/metrics/recent")
+async def metrics_recent(limit: int = 100):
+    return {"requests": metrics.recent(limit)}
+
+
+@app.get("/api/testing/capabilities")
+async def testing_capabilities(request: Request):
+    workers = request.app.state.worker_registry.workers()
+    mocks = [worker for worker in workers if worker.metadata.provider == "mock"]
+    return {
+        "enabled": settings.dashboard_fault_injection_enabled,
+        "mock_workers": [worker.metadata.as_dict() for worker in mocks],
+        "real_workers_mutable": False,
+    }
+
+
+@app.post("/api/testing/faults")
+async def apply_mock_fault(payload: dict, request: Request):
+    if not settings.dashboard_fault_injection_enabled:
+        raise HTTPException(status_code=403, detail="Fault injection is disabled by configuration.")
+    if payload.get("confirm") is not True:
+        raise HTTPException(status_code=400, detail="Explicit confirmation is required.")
+    worker_id = str(payload.get("worker_id", ""))
+    worker = next((w for w in request.app.state.worker_registry.workers() if w.metadata.worker_id == worker_id), None)
+    if worker is None or worker.metadata.provider != "mock" or not isinstance(worker, MockWorker):
+        raise HTTPException(status_code=404, detail="Only registered mock workers can be targeted.")
+    action = payload.get("action")
+    registry = request.app.state.worker_registry
+    if action == "unhealthy":
+        worker.set_healthy(False)
+        registry.mark_health(worker_id, False, error="dashboard fault injection")
+    elif action == "unavailable":
+        worker.set_available(False)
+        registry.set_available(worker_id, False)
+    elif action == "latency":
+        latency_ms = float(payload.get("latency_ms", 500))
+        if not 0 <= latency_ms <= 10000:
+            raise HTTPException(status_code=400, detail="latency_ms must be between 0 and 10000.")
+        worker.set_latency_ms(latency_ms)
+    elif action == "fail_next":
+        count = int(payload.get("count", 1))
+        mode = str(payload.get("mode", "error"))
+        if not 1 <= count <= 10 or mode not in {"error", "timeout", "unavailable", "rate_limit"}:
+            raise HTTPException(status_code=400, detail="Invalid failure count or mode.")
+        worker.fail_next(count=count, mode=mode)
+    elif action == "restore":
+        worker.set_healthy(True)
+        worker.set_available(True)
+        worker.set_latency_ms(0)
+        registry.set_available(worker_id, True)
+        registry.mark_health(worker_id, True)
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported fault action.")
+    return {"message": f"Applied {action} to mock worker {worker_id}.", "worker_id": worker_id, "action": action}
 
 
 def extract_user_prompt(payload: dict) -> str:
