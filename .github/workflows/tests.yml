@@ -20,6 +20,27 @@ jobs:
         run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch
       - name: Install gateway dependencies
         run: python -m pip install -r requirements.txt
+      - name: Check dashboard JavaScript syntax
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.active = False
+                  self.parts = []
+              def handle_starttag(self, tag, attrs):
+                  if tag == "script": self.active = True
+              def handle_endtag(self, tag):
+                  if tag == "script": self.active = False
+              def handle_data(self, data):
+                  if self.active: self.parts.append(data)
+          parser = Scripts()
+          parser.feed(Path("dashboard/index.html").read_text(encoding="utf-8"))
+          Path("/tmp/dashboard-inline.js").write_text("\n".join(parser.parts), encoding="utf-8")
+          PY
+          node --check /tmp/dashboard-inline.js
       - name: Run unit and integration tests
         env:
           OPENROUTER_ENABLED: "false"
