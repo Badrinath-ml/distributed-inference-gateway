@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "label": "prestart-kv512mib-seqs2",
+  "timestamp_utc": "20261117T190507Z",
+  "script": "scripts/gpu_cooldown.py",
+  "target_c": 57.0,
+  "max_c": 60.0,
+  "timeout_s": 900.0,
+  "interval_s": 2.0,
+  "reached_target": true,
+  "elapsed_s": 30.1784,
+  "start": {
+    "memory_used_mib": 88.0,
+    "utilization_gpu_pct": 0.0,
+    "temperature_c": 67.0,
+    "power_w": 3.17,
+    "clock_sm_mhz": 210.0,
+    "clock_mem_mhz": 374.0
+  },
+  "end": {
+    "memory_used_mib": 88.0,
+    "utilization_gpu_pct": 0.0,
+    "temperature_c": 60.0,
+    "power_w": 2.74,
+    "clock_sm_mhz": 210.0,
+    "clock_mem_mhz": 374.0
+  },
+  "samples": [
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 67.0,
+      "power_w": 3.17,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 0.1233
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 67.0,
+      "power_w": 2.93,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 2.2185
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 66.0,
+      "power_w": 2.91,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 4.3026
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 65.0,
+      "power_w": 2.92,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 6.3874
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 65.0,
+      "power_w": 2.94,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 8.4799
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 64.0,
+      "power_w": 2.96,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 10.5553
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 63.0,
+      "power_w": 2.86,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 12.6317
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 63.0,
+      "power_w": 2.84,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 14.9716
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 62.0,
+      "power_w": 2.82,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 17.1372
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 62.0,
+      "power_w": 2.8,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 19.2141
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 61.0,
+      "power_w": 2.81,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 21.2635
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 61.0,
+      "power_w": 2.81,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 23.375
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 61.0,
+      "power_w": 2.81,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 25.453
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 60.0,
+      "power_w": 2.76,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 27.5217
+    },
+    {
+      "memory_used_mib": 88.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 60.0,
+      "power_w": 2.74,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 29.8072
+    }
+  ],
+  "note": "Read-only nvidia-smi telemetry; no GPU or fan settings were changed."
+}

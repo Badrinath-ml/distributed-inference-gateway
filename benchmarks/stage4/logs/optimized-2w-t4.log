@@ -1,0 +1,15 @@
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 1225.17it/s]
+rep 1/3 conc 1: 53.9964 req/s, p50 17.4556 ms, loop p95 2.9528 ms, errors 0
+rep 1/3 conc 2: 55.9552 req/s, p50 34.906 ms, loop p95 3.2649 ms, errors 0
+rep 1/3 conc 4: 55.0324 req/s, p50 71.3941 ms, loop p95 3.4542 ms, errors 0
+rep 1/3 conc 8: 51.4266 req/s, p50 140.7431 ms, loop p95 6.0193 ms, errors 0
+rep 2/3 conc 1: 52.7625 req/s, p50 17.6683 ms, loop p95 2.811 ms, errors 0
+rep 2/3 conc 2: 51.5968 req/s, p50 34.4514 ms, loop p95 3.7934 ms, errors 0
+rep 2/3 conc 4: 47.8187 req/s, p50 79.8839 ms, loop p95 4.5272 ms, errors 0
+rep 2/3 conc 8: 50.3389 req/s, p50 142.9 ms, loop p95 4.2953 ms, errors 0
+rep 3/3 conc 1: 51.8599 req/s, p50 17.577 ms, loop p95 2.9309 ms, errors 0
+rep 3/3 conc 2: 54.4007 req/s, p50 35.8274 ms, loop p95 3.3223 ms, errors 0
+rep 3/3 conc 4: 47.7169 req/s, p50 76.1593 ms, loop p95 3.9582 ms, errors 0
+rep 3/3 conc 8: 49.9428 req/s, p50 156.7191 ms, loop p95 4.962 ms, errors 0
+Saved: /home/badri/distributed-inference-gateway/benchmarks/stage4/embedding_optimized-2w-t4_20261118T141822Z.json
+Saved: /home/badri/distributed-inference-gateway/benchmarks/stage4/embedding_optimized-2w-t4_20261118T141822Z.md

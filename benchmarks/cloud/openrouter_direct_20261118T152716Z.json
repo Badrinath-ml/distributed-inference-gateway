@@ -1,0 +1,91 @@
+{
+  "captured_at_utc": "2026-11-18T15:27:16Z",
+  "base_url": "https://openrouter.ai/api/v1",
+  "configured_model": "qwen/qwen3-4b:free",
+  "tested_model": "liquid/lfm-3-1.7b:free",
+  "model_overridden": true,
+  "api_key_present": true,
+  "api_key_length": 73,
+  "requests": {
+    "models": {
+      "status_code": 200,
+      "latency_ms": 845.91,
+      "model_list_count": 443,
+      "model_found": true,
+      "model_name": "LiquidAI: LFM3-1.7B (free)",
+      "context_length": 262144,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0",
+        "request": null
+      },
+      "is_free": true
+    },
+    "chat_non_streaming": {
+      "status_code": 200,
+      "latency_ms": 941.39,
+      "provider_model": "liquid/lfm-3-1.7b:free",
+      "provider_id": "Liquid",
+      "content": "",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 15,
+        "completion_tokens": 64,
+        "total_tokens": 79,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 64,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      }
+    },
+    "chat_streaming": {
+      "status_code": 200,
+      "content_type": "text/event-stream",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 15,
+        "completion_tokens": 64,
+        "total_tokens": 79,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 64,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "chunks": 66,
+      "saw_done": true,
+      "content": "",
+      "first_chunk_ms": 438.3,
+      "total_latency_ms": 698.1
+    }
+  },
+  "secrets_redacted": true,
+  "completed_at_utc": "2026-11-18T15:27:19Z"
+}

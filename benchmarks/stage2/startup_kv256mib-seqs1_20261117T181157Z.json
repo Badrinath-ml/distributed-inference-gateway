@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "label": "kv256mib-seqs1",
+  "timestamp_utc": "20261117T181157Z",
+  "ok": true,
+  "kv_mib": 256,
+  "kv_bytes": 268435456,
+  "max_num_seqs": 1,
+  "pid": 27072,
+  "log": "benchmarks/logs/worker1_baseline_vllm_20261117T181157Z.log",
+  "cmdline": [],
+  "startup_seconds": null,
+  "gpu_before": {
+    "memory_used_mib": null,
+    "temperature_c": 44.0,
+    "utilization_gpu_pct": 0.0,
+    "power_w": 2.4
+  },
+  "gpu_after": {
+    "memory_used_mib": 5007.0,
+    "memory_free_mib": 914.0,
+    "temperature_c": 44.0,
+    "utilization_gpu_pct": 0.0,
+    "power_w": 2.4
+  },
+  "prestart_cooldown": {
+    "skipped": true
+  },
+  "poststart_cooldown": {
+    "skipped": true
+  },
+  "facts": {
+    "kv_cache_tokens": 1168,
+    "concurrency_tokens_per_request": 1024,
+    "max_concurrency": 1.14,
+    "model_memory_gib": 4.33,
+    "model_load_seconds": 13.835867,
+    "engine_init_seconds": 2.11,
+    "non_default_args": "{'model_tag': 'Qwen/Qwen3-1.7B', 'host': '0.0.0.0', 'model': 'Qwen/Qwen3-1.7B', 'dtype': 'half', 'max_model_len': 1024, 'enforce_eager': True, 'gpu_memory_utilization': 0.8, 'kv_cache_memory_bytes': 268435456, 'max_num_seqs': 1, 'speculative_config': {'method': 'draft_model', 'model': 'Qwen/Qwen3-0.6B', 'num_speculative_tokens': 2}}"
+  },
+  "note": "Startup record reconstructed from the actual baseline vLLM log and GPU telemetry recorded at startup; no new run was performed."
+}

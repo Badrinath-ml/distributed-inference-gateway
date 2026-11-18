@@ -1,0 +1,38 @@
+{
+  "captured_at_utc": "2026-11-18T15:26:56Z",
+  "base_url": "https://openrouter.ai/api/v1",
+  "configured_model": "qwen/qwen3-4b:free",
+  "tested_model": "google/gemma-4-26b-a4b-it:free",
+  "model_overridden": true,
+  "api_key_present": true,
+  "api_key_length": 73,
+  "requests": {
+    "models": {
+      "status_code": 200,
+      "latency_ms": 847.19,
+      "model_list_count": 443,
+      "model_found": true,
+      "model_name": "Google: Gemma 4 26B A4B  (free)",
+      "context_length": 262144,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0",
+        "request": null
+      },
+      "is_free": true
+    },
+    "chat_non_streaming": {
+      "status_code": 429,
+      "latency_ms": 370.27,
+      "error_body": "{\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"google/gemma-4-26b-a4b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own provider key to use your own limits: https://openrouter.ai/workspaces/default/byok\",\"provider_name\":\"Google AI Studio\",\"is_byok\":false,\"provider_error_code\":\"429\",\"limit_source\":\"upstream_provider_shared_pool\",\"remedy_hint\":\"Retry shortly, add your own provider key to use your own limits (https://openrouter.ai/workspaces/default/byok), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing.\"}},\"user_id\":\"user_3G2o2xfhKBC6QltQvNMoouFGfOJ\"}"
+    },
+    "chat_streaming": {
+      "status_code": 429,
+      "content_type": "application/json",
+      "error_body": "{\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"google/gemma-4-26b-a4b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own provider key to use your own limits: https://openrouter.ai/workspaces/default/byok\",\"provider_name\":\"Google AI Studio\",\"is_byok\":false,\"provider_error_code\":\"429\",\"limit_source\":\"upstream_provider_shared_pool\",\"remedy_hint\":\"Retry shortly, add your own provider key to use your own limits (https://openrouter.ai/workspaces/default/byok), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing.\"}},\"user_id\":\"user_3G2o2xfhKBC6QltQvNMoouFGfOJ\"}",
+      "total_latency_ms": 137.26
+    }
+  },
+  "secrets_redacted": true,
+  "completed_at_utc": "2026-11-18T15:26:57Z"
+}

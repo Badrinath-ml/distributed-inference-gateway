@@ -1,0 +1,28 @@
+{
+  "captured_at_utc": "2026-11-18T15:26:20Z",
+  "base_url": "https://openrouter.ai/api/v1",
+  "configured_model": "qwen/qwen3-4b:free",
+  "api_key_present": true,
+  "api_key_length": 73,
+  "requests": {
+    "models": {
+      "status_code": 200,
+      "latency_ms": 905.72,
+      "model_list_count": 443,
+      "model_found": false
+    },
+    "chat_non_streaming": {
+      "status_code": 404,
+      "latency_ms": 358.56,
+      "error_body": "{\"error\":{\"message\":\"qwen/qwen3-4b:free is no longer available on OpenRouter: no provider serves this model anymore. See available models at https://openrouter.ai/models\",\"code\":404},\"user_id\":\"user_3G2o2xfhKBC6QltQvNMoouFGfOJ\"}"
+    },
+    "chat_streaming": {
+      "status_code": 404,
+      "content_type": "application/json",
+      "error_body": "{\"error\":{\"message\":\"qwen/qwen3-4b:free is no longer available on OpenRouter: no provider serves this model anymore. See available models at https://openrouter.ai/models\",\"code\":404},\"user_id\":\"user_3G2o2xfhKBC6QltQvNMoouFGfOJ\"}",
+      "total_latency_ms": 22.49
+    }
+  },
+  "secrets_redacted": true,
+  "completed_at_utc": "2026-11-18T15:26:21Z"
+}

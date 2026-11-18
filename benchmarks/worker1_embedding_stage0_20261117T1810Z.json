@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "timestamp_utc": "20261117T181023Z",
+  "script": "scripts/benchmark_embeddings.py",
+  "command": [
+    "scripts/benchmark_embeddings.py",
+    "--output",
+    "benchmarks/worker1_embedding_stage0_20261117T1810Z.json"
+  ],
+  "environment": {
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "cpu_count": 16,
+    "torch_version": "2.14.0+cu132",
+    "torch_num_threads": 8,
+    "torch_num_interop_threads": 8,
+    "device": "cpu"
+  },
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "load_seconds": 1.78308,
+  "embedding": {
+    "shape": [
+      4,
+      384
+    ],
+    "norm_first": 1.0,
+    "batch_single_max_abs_diff": 9.97e-08,
+    "batch_single_consistent": true,
+    "encode_ms": {
+      "count": 50,
+      "min": 3.1543,
+      "mean": 3.7519,
+      "median": 3.4639,
+      "p95": 5.1656,
+      "p99": 5.9027,
+      "max": 6.4099,
+      "p99_reliable": false
+    },
+    "encode_batch4_ms": {
+      "count": 25,
+      "min": 5.9493,
+      "mean": 7.5012,
+      "median": 7.4064,
+      "p95": 8.7149,
+      "p99": 9.2524,
+      "max": 9.4188,
+      "p99_reliable": false
+    }
+  },
+  "routing": {
+    "route_ms": {
+      "count": 50,
+      "min": 3.0608,
+      "mean": 3.9715,
+      "median": 3.7476,
+      "p95": 5.6185,
+      "p99": 7.0396,
+      "max": 7.3813,
+      "p99_reliable": false
+    },
+    "categories": [
+      "coding",
+      "general",
+      "reasoning"
+    ]
+  },
+  "concurrency": [
+    {
+      "workers": 1,
+      "rounds": 3,
+      "calls": 48,
+      "wall_seconds": 0.202929,
+      "throughput_calls_per_second": 236.5364,
+      "latency_ms": {
+        "count": 48,
+        "min": 3.2269,
+        "mean": 4.1665,
+        "median": 3.9053,
+        "p95": 5.8133,
+        "p99": 8.2636,
+        "max": 10.2994,
+        "p99_reliable": false
+      },
+      "categories_match_serial": true,
+      "max_top_score_difference": 0.0,
+      "scores_match_serial": true
+    },
+    {
+      "workers": 2,
+      "rounds": 3,
+      "calls": 48,
+      "wall_seconds": 0.423245,
+      "throughput_calls_per_second": 113.4094,
+      "latency_ms": {
+        "count": 48,
+        "min": 16.1651,
+        "mean": 17.558,
+        "median": 17.2559,
+        "p95": 19.0607,
+        "p99": 23.5569,
+        "max": 24.7737,
+        "p99_reliable": false
+      },
+      "categories_match_serial": true,
+      "max_top_score_difference": 0.0,
+      "scores_match_serial": true
+    },
+    {
+      "workers": 4,
+      "rounds": 3,
+      "calls": 48,
+      "wall_seconds": 0.334904,
+      "throughput_calls_per_second": 143.3245,
+      "latency_ms": {
+        "count": 48,
+        "min": 23.197,
+        "mean": 27.6714,
+        "median": 27.0473,
+        "p95": 31.5348,
+        "p99": 32.8817,
+        "max": 32.8849,
+        "p99_reliable": false
+      },
+      "categories_match_serial": true,
+      "max_top_score_difference": 0.0,
+      "scores_match_serial": true
+    },
+    {
+      "workers": 8,
+      "rounds": 3,
+      "calls": 48,
+      "wall_seconds": 0.48285,
+      "throughput_calls_per_second": 99.4098,
+      "latency_ms": {
+        "count": 48,
+        "min": 69.8704,
+        "mean": 79.5862,
+        "median": 78.8493,
+        "p95": 86.4281,
+        "p99": 87.2899,
+        "max": 87.3012,
+        "p99_reliable": false
+      },
+      "categories_match_serial": true,
+      "max_top_score_difference": 0.0,
+      "scores_match_serial": true
+    }
+  ],
+  "notes": [
+    "CPU-only measurement; vLLM/GPU is not involved.",
+    "ThreadPoolExecutor is used to test concurrent correctness and indicative latency.",
+    "Production gateway execution uses Starlette/AnyIO's bounded thread pool.",
+    "Concurrent results are compared against serial categories and top scores."
+  ]
+}

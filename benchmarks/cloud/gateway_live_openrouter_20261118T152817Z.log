@@ -1,0 +1,35 @@
+INFO:     Started server process [15587]
+INFO:     Waiting for application startup.
+INFO:app.main:Initializing semantic router...
+INFO:app.services.embeddings:Loading embedding model sentence-transformers/all-MiniLM-L6-v2 on CPU...
+INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 1758.35it/s]
+INFO:app.services.embeddings:Embedding model loaded successfully.
+INFO:app.main:Embedding executor initialized with 1 worker(s).
+INFO:app.main:Registered worker worker2-openrouter (provider=openrouter, model=liquid/lfm-3-1.7b:free, capabilities=['chat', 'streaming'], max_concurrency=4, state=unknown)
+INFO:app.main:Gateway initialized with 1 worker(s).
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59992 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59992 - "GET /health/workers HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET https://openrouter.ai/api/v1/models "HTTP/1.1 200 OK"
+INFO:app.services.health:Worker worker2-openrouter is healthy
+INFO:     127.0.0.1:59992 - "GET /health/workers HTTP/1.1" 200 OK
+INFO:app.main:Semantic routing: category=general, score=0.2070, margin=0.0964
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:app.services.inference:Routed completion to worker=worker2-openrouter provider=openrouter category=general
+INFO:     127.0.0.1:59992 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:app.main:Semantic routing: category=general, score=0.2070, margin=0.0964
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:app.services.inference:Routed stream to worker=worker2-openrouter provider=openrouter category=general
+INFO:     127.0.0.1:59992 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60008 - "GET /health/workers HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:app.main:Gateway shutting down.
+INFO:app.main:Gateway shutdown complete.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [15587]

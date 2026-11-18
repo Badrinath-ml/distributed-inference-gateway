@@ -1,0 +1,132 @@
+{
+  "captured_at_utc": "2026-11-18T15:28:17Z",
+  "mode": "cloud-only",
+  "worker1_enabled": false,
+  "mock_worker_enabled": false,
+  "openrouter_model": "liquid/lfm-3-1.7b:free",
+  "gateway": "http://127.0.0.1:8080",
+  "requests": {
+    "chat_non_streaming": {
+      "status_code": 200,
+      "latency_ms": 1071.2,
+      "headers": {
+        "x-semantic-category": "general",
+        "x-worker-id": "worker2-openrouter",
+        "content-type": "application/json"
+      },
+      "model": "liquid/lfm-3-1.7b:free",
+      "content": "OK",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 15,
+        "completion_tokens": 85,
+        "total_tokens": 100,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 83,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      }
+    },
+    "chat_streaming": {
+      "status_code": 200,
+      "headers": {
+        "x-semantic-category": "general",
+        "x-worker-id": "worker2-openrouter",
+        "content-type": "text/event-stream; charset=utf-8"
+      },
+      "usage": {
+        "prompt_tokens": 15,
+        "completion_tokens": 67,
+        "total_tokens": 82,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 65,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "chunks": 67,
+      "saw_done": true,
+      "first_chunk_ms": 595.54,
+      "content": "OK",
+      "total_latency_ms": 742.26
+    }
+  },
+  "secrets_redacted": true,
+  "health_workers_initial": {
+    "workers": [
+      {
+        "worker_id": "worker2-openrouter",
+        "provider": "openrouter",
+        "model": "liquid/lfm-3-1.7b:free",
+        "capabilities": [
+          "chat",
+          "streaming"
+        ],
+        "max_concurrency": 4,
+        "description": "OpenRouter cloud inference worker (Qwen model family).",
+        "state": "healthy",
+        "available": true,
+        "in_flight": 0,
+        "last_checked_at": "2026-11-18T15:28:27.433783+00:00",
+        "last_error": null,
+        "consecutive_failures": 0
+      }
+    ]
+  },
+  "worker_ids": [
+    "worker2-openrouter"
+  ],
+  "worker_providers": [
+    "openrouter"
+  ],
+  "health_workers_final": {
+    "workers": [
+      {
+        "worker_id": "worker2-openrouter",
+        "provider": "openrouter",
+        "model": "liquid/lfm-3-1.7b:free",
+        "capabilities": [
+          "chat",
+          "streaming"
+        ],
+        "max_concurrency": 4,
+        "description": "OpenRouter cloud inference worker (Qwen model family).",
+        "state": "healthy",
+        "available": true,
+        "in_flight": 0,
+        "last_checked_at": "2026-11-18T15:28:27.433783+00:00",
+        "last_error": null,
+        "consecutive_failures": 0
+      }
+    ]
+  },
+  "result": "PASS",
+  "completed_at_utc": "2026-11-18T15:28:29Z"
+}

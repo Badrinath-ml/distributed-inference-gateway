@@ -1,0 +1,10 @@
+# Gateway runtime dependencies (CPU embedding + FastAPI + HTTP workers).
+# Worker 1 itself runs vLLM in a separate process; install vLLM according to
+# its own CUDA/platform instructions rather than mixing it into this file.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+httpx>=0.27,<1
+pydantic-settings>=2.3,<3
+# CPU MiniLM embedding; sentence-transformers is intentionally not required.
+torch>=2.2
+transformers>=4.40

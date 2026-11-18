@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "label": "kv512mib-seqs2",
+  "timestamp_utc": "20261117T190504Z",
+  "ok": true,
+  "kv_mib": 512,
+  "kv_bytes": 536870912,
+  "max_num_seqs": 2,
+  "pid": 38409,
+  "log": "/home/badri/distributed-inference-gateway/benchmarks/logs/worker1_stage2_vllm_kv512mib-seqs2_20261117T190504Z.log",
+  "cmdline": [
+    "/home/badri/distributed-inference-gateway/.venv/bin/python",
+    "/home/badri/distributed-inference-gateway/.venv/bin/vllm",
+    "serve",
+    "Qwen/Qwen3-1.7B",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "8000",
+    "--dtype",
+    "half",
+    "--max-model-len",
+    "1024",
+    "--max-num-seqs",
+    "2",
+    "--gpu-memory-utilization",
+    "0.80",
+    "--kv-cache-memory-bytes",
+    "536870912",
+    "--speculative-config",
+    "{\"method\":\"draft_model\",\"model\":\"Qwen/Qwen3-0.6B\",\"num_speculative_tokens\":2}",
+    "--enforce-eager"
+  ],
+  "startup_seconds": 46.5141,
+  "gpu_before": {
+    "memory_used_mib": 5273.0,
+    "utilization_gpu_pct": 0.0,
+    "temperature_c": 69.0,
+    "power_w": 3.12,
+    "clock_sm_mhz": 210.0,
+    "clock_mem_mhz": 374.0
+  },
+  "gpu_after": {
+    "memory_used_mib": 5340.0,
+    "utilization_gpu_pct": 0.0,
+    "temperature_c": 55.0,
+    "power_w": 2.61,
+    "clock_sm_mhz": 210.0,
+    "clock_mem_mhz": 374.0
+  },
+  "prestart_cooldown": {
+    "skipped": false,
+    "returncode": 0,
+    "max_c": 60.0,
+    "timeout_s": 900.0,
+    "note": "returncode 2 means cooldown timed out and the start proceeded"
+  },
+  "poststart_cooldown": {
+    "skipped": false,
+    "returncode": 0,
+    "max_c": 55.0,
+    "timeout_s": 900.0,
+    "note": "returncode 2 means cooldown timed out and benchmarking may start warm"
+  },
+  "facts": {
+    "kv_cache_tokens": 2336,
+    "concurrency_tokens_per_request": 1024,
+    "max_concurrency": 2.28,
+    "model_memory_gib": 4.33,
+    "model_load_seconds": 15.719644,
+    "engine_init_seconds": 2.26,
+    "non_default_args": "{'model_tag': 'Qwen/Qwen3-1.7B', 'host': '0.0.0.0', 'model': 'Qwen/Qwen3-1.7B', 'dtype': 'half', 'max_model_len': 1024, 'enforce_eager': True, 'gpu_memory_utilization': 0.8, 'kv_cache_memory_bytes': 536870912, 'max_num_seqs': 2, 'speculative_config': {'method': 'draft_model', 'model': 'Qwen/Qwen3-0.6B', 'num_speculative_tokens': 2}}"
+  }
+}

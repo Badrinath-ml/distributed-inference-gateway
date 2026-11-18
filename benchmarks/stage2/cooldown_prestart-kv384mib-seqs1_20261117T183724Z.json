@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "label": "prestart-kv384mib-seqs1",
+  "timestamp_utc": "20261117T183724Z",
+  "script": "scripts/gpu_cooldown.py",
+  "target_c": 57.0,
+  "max_c": 60.0,
+  "timeout_s": 900.0,
+  "interval_s": 2.0,
+  "reached_target": true,
+  "elapsed_s": 2.2175,
+  "start": {
+    "memory_used_mib": 120.0,
+    "utilization_gpu_pct": 0.0,
+    "temperature_c": 56.0,
+    "power_w": 2.81,
+    "clock_sm_mhz": 210.0,
+    "clock_mem_mhz": 374.0
+  },
+  "end": {
+    "memory_used_mib": 120.0,
+    "utilization_gpu_pct": 0.0,
+    "temperature_c": 55.0,
+    "power_w": 2.69,
+    "clock_sm_mhz": 210.0,
+    "clock_mem_mhz": 374.0
+  },
+  "samples": [
+    {
+      "memory_used_mib": 120.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 56.0,
+      "power_w": 2.71,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 0.095
+    },
+    {
+      "memory_used_mib": 120.0,
+      "utilization_gpu_pct": 0.0,
+      "temperature_c": 55.0,
+      "power_w": 2.66,
+      "clock_sm_mhz": 210.0,
+      "clock_mem_mhz": 374.0,
+      "elapsed_s": 2.1616
+    }
+  ],
+  "note": "Read-only nvidia-smi telemetry; no GPU or fan settings were changed."
+}
