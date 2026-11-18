@@ -102,6 +102,11 @@ class MockWorker(BaseWorker):
         self._fault_mode = mode
         self._fault_remaining = max(0, count)
 
+    def clear_faults(self) -> None:
+        """Cancel any pending injected failures."""
+        self._fault_remaining = 0
+        self._fault_mode = None
+
     def _maybe_fail(self) -> None:
         if self._fault_remaining <= 0:
             return

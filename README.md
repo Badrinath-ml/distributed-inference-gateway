@@ -51,7 +51,7 @@ cp .env.example .env
 Start Worker 1 (separate terminal, frozen configuration):
 
 ```bash
-scripts/start_worker1.sh
+bash scripts/start_worker1.sh
 ```
 
 Start the gateway:
@@ -77,6 +77,12 @@ in `.env` even when Worker 1 is disabled.
 |---|---|---|
 | `GET` | `/health` | Process liveness (always `200` while the app runs; does not include worker health). |
 | `GET` | `/health/workers` | Registry snapshot: metadata, health state, availability, in-flight count, last error. |
+| `GET` | `/dashboard` | Browser-based inference evaluation console. |
+| `GET` | `/api/metrics/overview` | Bounded request telemetry, latency percentiles, errors and failovers. |
+| `GET` | `/api/metrics/workers` | Worker registry snapshot for dashboard. |
+| `GET` | `/api/metrics/recent?limit=100` | Recent request samples (maximum 200). |
+| `GET` | `/api/testing/capabilities` | Reports whether mock-only fault injection is enabled. |
+| `POST` | `/api/testing/faults` | Explicitly confirmed mock-worker fault action; disabled by default. |
 | `POST` | `/v1/chat/completions` | OpenAI-compatible chat completion; supports `stream: true`. |
 
 Responses include `X-Semantic-Category` and `X-Worker-Id` headers. Streaming
@@ -93,6 +99,8 @@ Error mapping:
 | Worker/provider rate limit | `429` with `Retry-After` when supplied |
 | Worker/provider error, timeout, invalid response | `502` |
 
+Open `http://localhost:8080/dashboard` after starting the gateway to use the evaluation console. It includes runtime telemetry, client-side request testing, worker status and mock-only fault injection. The browser test tool reports client-observed first byte and SSE content-event intervals; it does not infer token-level TPOT/ITL from SSE frames.
+
 ## Configuration
 
 All settings are environment variables (or `.env` entries). See
@@ -106,6 +114,8 @@ All settings are environment variables (or `.env` entries). See
   worker health monitoring.
 - `ROUTING_RETRY_ON_CONNECT_ERROR` (default `true`) — one retry on connection
   failure before any response bytes.
+- `DASHBOARD_FAULT_INJECTION_ENABLED` (default `false`) — development-only
+  fault injection, restricted to registered mock workers.
 
 ## Tests
 
@@ -129,7 +139,7 @@ All benchmark artifacts are append-only and timestamped:
   (in-process gateway + deterministic local stub upstream).
 - `scripts/benchmark_multiworker.py` — scheduler/routing benchmark with three
   mock workers (no GPU or cloud call).
-- `scripts/run_stage4_matrix.sh` — sequential executor/thread matrix.
+- `bash scripts/run_stage4_matrix.sh` — sequential executor/thread matrix.
 - Existing Worker 1 benchmarks and reports remain under `benchmarks/`.
 
 Results and the selected configuration are documented in `docs/benchmarks.md`.

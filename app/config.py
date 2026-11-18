@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     embedding_executor_workers: int = Field(default=1, ge=1, le=32)
     embedding_torch_threads: int | None = Field(default=None, ge=1, le=64)
 
+    # Dashboard and development-only fault injection.
+    dashboard_fault_injection_enabled: bool = False
+
     # Worker health monitoring.
     health_check_enabled: bool = True
     health_check_interval_seconds: float = Field(default=15.0, gt=0)
