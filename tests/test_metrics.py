@@ -24,6 +24,14 @@ class MetricsStoreTests(unittest.TestCase):
         self.assertEqual(snapshot["gateway_duration_ms"]["p50"], 2.0)
         self.assertEqual(snapshot["streaming_requests_retained"], 1)
 
+    def test_incomplete_response_counts_as_failed(self):
+        store = MetricsStore()
+        store.begin()
+        store.finish({"status_code": 200, "gateway_duration_ms": 10.0, "completed": False})
+        snapshot = store.snapshot()
+        self.assertEqual(snapshot["requests_failed"], 1)
+        self.assertEqual(snapshot["error_rate"], 1.0)
+
     def test_failover_counter(self):
         store = MetricsStore()
         store.record_failover()
