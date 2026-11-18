@@ -22,6 +22,7 @@ input,select,textarea{width:100%;background:#0d1526;border:1px solid var(--line)
 <section id="overview">
 <div class="grid">
 <div class="metric"><div class="label">Requests since process start</div><div class="value" id="total">—</div><small id="retained">Bounded sample window</small></div>
+<div class="metric"><div class="label">Lifetime average throughput</div><div class="value" id="rps">—</div><small>Requests per second since process start</small></div>
 <div class="metric"><div class="label">Active requests</div><div class="value" id="active">—</div><small>In-flight at gateway</small></div>
 <div class="metric"><div class="label">Error rate</div><div class="value" id="errors">—</div><small id="errorCount">HTTP status ≥ 400</small></div>
 <div class="metric"><div class="label">Failover attempts</div><div class="value" id="failovers">—</div><small>Connection-phase retries</small></div>
@@ -34,6 +35,7 @@ input,select,textarea{width:100%;background:#0d1526;border:1px solid var(--line)
 <div class="panel"><h2>Worker fleet</h2><div id="workerSummary" class="muted">Waiting for worker telemetry…</div></div>
 <div class="panel"><h2>Measurement contract</h2><p>Gateway latency is measured from request entry to the final ASGI response body. First response body is the first non-empty body emitted by the gateway.</p><p>These are not client-observed network timings. SSE frames/events are not tokens; TPOT, ITL and token jitter are intentionally not fabricated.</p><p class="footer">Sample capacity: <span id="capacity">—</span> · Process uptime: <span id="uptime">—</span></p></div>
 </div>
+<div class="panel section"><h2>Recent gateway latency trend</h2><svg id="latencyChart" viewBox="0 0 900 150" width="100%" role="img" aria-label="Recent gateway latency trend"><path d="M 0 130 H 900" stroke="#273550" fill="none"/><text x="12" y="24" fill="#91a0ba" font-size="12">Waiting for requests…</text></svg></div>
 </section>
 <section id="requests" class="hidden">
 <div class="panel"><h2>Send requests through the gateway</h2><p>Requests use the same OpenAI-compatible endpoint as your clients. Keep the batch small on a laptop GPU.</p>
@@ -76,15 +78,23 @@ async function refresh(){
  try{
   const [m,w,r]=await Promise.all([get("/api/metrics/overview"),get("/api/metrics/workers"),get("/api/metrics/recent?limit=100")]);
   $("liveDot").style.background="var(--green)";$("connection").textContent="Gateway connected";$("updated").textContent="Updated "+new Date().toLocaleTimeString();
-  $("total").textContent=m.requests_total;$("active").textContent=m.active_requests;$("errors").textContent=pct(m.error_rate);$("errorCount").textContent=m.requests_failed+" failed requests";
+  $("total").textContent=m.requests_total;$("rps").textContent=m.average_requests_per_second.toFixed(2);$("active").textContent=m.active_requests;$("errors").textContent=pct(m.error_rate);$("errorCount").textContent=m.requests_failed+" failed requests";
   $("failovers").textContent=m.failovers_total;$("p50").textContent=ms(m.gateway_duration_ms.p50);$("p95").textContent=ms(m.gateway_duration_ms.p95);$("p99").textContent=ms(m.gateway_duration_ms.p99);$("firstBody").textContent=ms(m.gateway_first_body_ms.p50);
   $("retained").textContent=m.samples_retained+" / "+m.sample_capacity+" recent samples";$("capacity").textContent=m.sample_capacity;$("uptime").textContent=m.uptime_seconds+" s";
-  lastWorkers=w.workers||[];renderWorkers(lastWorkers);renderRecent(r.requests||[]);
+  lastWorkers=w.workers||[];renderWorkers(lastWorkers);renderRecent(r.requests||[]);renderLatency(r.requests||[]);
  }catch(e){$("liveDot").style.background="var(--red)";$("connection").textContent="Gateway unavailable";$("updated").textContent=e.message}
 }
 function renderWorkers(workers){
  const html=workers.length?workers.map(w=>'<div class="worker"><div><b>'+esc(w.worker_id)+'</b><div class="muted">'+esc(w.provider)+' · '+esc(w.model)+'</div><div class="muted">In-flight '+w.in_flight+' / routing weight '+w.max_concurrency+'</div><div class="bar"><span style="width:'+Math.min(100,100*w.in_flight/Math.max(1,w.max_concurrency))+'%"></span></div></div><span class="status '+esc(w.state)+'">'+esc(w.state)+'</span></div>').join(""):"No workers registered";
  $("workerSummary").innerHTML=html;$("workersDetailed").innerHTML=html;
+}
+function renderLatency(rows){
+ const values=rows.filter(x=>Number.isFinite(Number(x.gateway_duration_ms))).slice(-60).map(x=>Number(x.gateway_duration_ms));
+ const svg=$("latencyChart");
+ if(!values.length){svg.innerHTML='<text x="12" y="24" fill="#91a0ba" font-size="12">No request samples yet</text>';return}
+ const max=Math.max(1,...values);
+ const pts=values.map((v,i)=>{const x=20+i*(860/Math.max(1,values.length-1));const y=128-(v/max)*105;return x.toFixed(1)+","+y.toFixed(1)}).join(" ");
+ svg.innerHTML='<path d="M 0 130 H 900" stroke="#273550" fill="none"/><polyline points="'+pts+'" fill="none" stroke="#79a8ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15" fill="#91a0ba" font-size="11">Max recent sample: '+max.toFixed(1)+' ms</text>';
 }
 function renderRecent(rows){
  $("recentRows").innerHTML=rows.slice().reverse().map(x=>'<tr><td>'+new Date(x.timestamp).toLocaleTimeString()+'</td><td>'+x.status_code+'</td><td>'+esc(x.worker_id||"—")+'</td><td>'+(x.streaming?"SSE":"JSON")+'</td><td>'+ms(x.gateway_duration_ms)+'</td><td>'+ms(x.gateway_first_body_ms)+'</td><td>'+x.asgi_body_frames+'</td><td>'+x.response_bytes+'</td></tr>').join("")||'<tr><td colspan="8">No requests recorded yet</td></tr>';
