@@ -44,7 +44,6 @@ jobs:
       - name: Run unit and integration tests
         env:
           OPENROUTER_ENABLED: "false"
-          WORKER1_ENABLED: "false"
           MOCK_WORKER_ENABLED: "false"
           VLLM_BASE_URL: "http://127.0.0.1:8000"
           VLLM_MODEL: "Qwen/Qwen3-1.7B"
