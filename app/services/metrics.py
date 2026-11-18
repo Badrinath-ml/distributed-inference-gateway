@@ -141,6 +141,7 @@ class MetricsMiddleware:
         async def measured_send(message) -> None:
             nonlocal status_code, response_headers, first_body_at
             nonlocal body_frames, body_bytes, completed
+            is_final_body = False
             if message["type"] == "http.response.start":
                 status_code = int(message["status"])
                 response_headers = {
@@ -157,23 +158,27 @@ class MetricsMiddleware:
                         first_body_at = time.perf_counter()
                     body_frames += 1
                     body_bytes += len(body)
-                if not message.get("more_body", False) and not completed:
-                    completed = True
-                    finished = time.perf_counter()
-                    self.store.finish({
-                        "request_id": request_id,
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                        "status_code": status_code,
-                        "worker_id": response_headers.get("x-worker-id"),
-                        "semantic_category": response_headers.get("x-semantic-category"),
-                        "streaming": "text/event-stream" in response_headers.get("content-type", ""),
-                        "gateway_duration_ms": round((finished - started) * 1000, 3),
-                        "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
-                        "asgi_body_frames": body_frames,
-                        "response_bytes": body_bytes,
-                        "completed": True,
-                    })
+                is_final_body = not message.get("more_body", False)
+
+            # Send first. If the client disconnects while sending the final
+            # frame, the outer exception path records an incomplete request.
             await send(message)
+            if is_final_body and not completed:
+                completed = True
+                finished = time.perf_counter()
+                self.store.finish({
+                    "request_id": request_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "status_code": status_code,
+                    "worker_id": response_headers.get("x-worker-id"),
+                    "semantic_category": response_headers.get("x-semantic-category"),
+                    "streaming": "text/event-stream" in response_headers.get("content-type", ""),
+                    "gateway_duration_ms": round((finished - started) * 1000, 3),
+                    "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
+                    "asgi_body_frames": body_frames,
+                    "response_bytes": body_bytes,
+                    "completed": True,
+                })
 
         try:
             await self.app(scope, receive, measured_send)
