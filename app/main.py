@@ -215,6 +215,7 @@ async def apply_mock_fault(payload: dict, request: Request):
         worker.set_healthy(True)
         worker.set_available(True)
         worker.set_latency_ms(0)
+        worker.clear_faults()
         registry.set_available(worker_id, True)
         registry.mark_health(worker_id, True)
     else:
