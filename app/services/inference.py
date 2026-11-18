@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 
 from app.services.scheduler import NoEligibleWorkersError, WorkerScheduler
+from app.services.metrics import metrics
 from app.workers.base import (
     CHAT_CAPABILITY,
     STREAMING_CAPABILITY,
@@ -74,6 +75,7 @@ async def generate_completion(
                 "Worker %s was unreachable; retrying on another worker",
                 record.worker_id,
             )
+            metrics.record_failover()
             excluded.add(record.worker_id)
             attempt += 1
             continue
@@ -128,6 +130,7 @@ async def stream_completion(
                 "Worker %s was unreachable while opening a stream; retrying",
                 record.worker_id,
             )
+            metrics.record_failover()
             excluded.add(record.worker_id)
             attempt += 1
             continue
