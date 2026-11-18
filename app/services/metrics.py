@@ -190,7 +190,7 @@ class MetricsMiddleware:
                     "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
                     "asgi_body_frames": body_frames,
                     "response_bytes": body_bytes,
-                    "completed": True,
+                    "completed": False,
                 })
                 completed = True
         except BaseException:
