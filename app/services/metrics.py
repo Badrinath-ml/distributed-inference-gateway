@@ -51,7 +51,7 @@ class MetricsStore:
         with self._lock:
             self._active_requests = max(0, self._active_requests - 1)
             self._requests_total += 1
-            if int(sample.get("status_code") or 500) >= 400:
+            if int(sample.get("status_code") or 500) >= 400 or sample.get("completed") is False:
                 self._requests_failed += 1
             self._samples.append(sample)
 
@@ -79,6 +79,7 @@ class MetricsStore:
         return {
             "started_at": self._started_at,
             "uptime_seconds": round(time.monotonic() - self._started_monotonic, 1),
+            "average_requests_per_second": round(total / max(1.0, time.monotonic() - self._started_monotonic), 3),
             "requests_total": total,
             "requests_failed": failed,
             "error_rate": round(failed / total, 4) if total else 0.0,
@@ -170,6 +171,7 @@ class MetricsMiddleware:
                         "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
                         "asgi_body_frames": body_frames,
                         "response_bytes": body_bytes,
+                        "completed": True,
                     })
             await send(message)
 
@@ -188,6 +190,7 @@ class MetricsMiddleware:
                     "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
                     "asgi_body_frames": body_frames,
                     "response_bytes": body_bytes,
+                    "completed": True,
                 })
                 completed = True
         except BaseException:
@@ -204,5 +207,6 @@ class MetricsMiddleware:
                     "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
                     "asgi_body_frames": body_frames,
                     "response_bytes": body_bytes,
+                    "completed": False,
                 })
             raise
