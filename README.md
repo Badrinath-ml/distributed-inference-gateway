@@ -139,7 +139,7 @@ All benchmark artifacts are append-only and timestamped:
   (in-process gateway + deterministic local stub upstream).
 - `scripts/benchmark_multiworker.py` — scheduler/routing benchmark with three
   mock workers (no GPU or cloud call).
-- `bash bash scripts/run_stage4_matrix.sh` — sequential executor/thread matrix.
+- `bash scripts/run_stage4_matrix.sh` — sequential executor/thread matrix.
 - Existing Worker 1 benchmarks and reports remain under `benchmarks/`.
 
 Results and the selected configuration are documented in `docs/benchmarks.md`.
