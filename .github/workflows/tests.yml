@@ -25,4 +25,6 @@ jobs:
           OPENROUTER_ENABLED: "false"
           WORKER1_ENABLED: "false"
           MOCK_WORKER_ENABLED: "false"
+          VLLM_BASE_URL: "http://127.0.0.1:8000"
+          VLLM_MODEL: "Qwen/Qwen3-1.7B"
         run: PYTHONPATH=. python -m unittest discover -s tests -v
