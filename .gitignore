@@ -6,3 +6,4 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+\n# Local runtime outputs and secrets\n.env.*\n!.env.example\n*.pid\n*.log\n
