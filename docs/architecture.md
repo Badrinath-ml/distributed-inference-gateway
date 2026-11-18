@@ -132,3 +132,24 @@ registry, scheduler rotation and in-flight counters are process-local. Running
 multiple gateway replicas would give each replica an independent view of load and
 health; that is acceptable for stateless HTTP routing but is not a distributed
 scheduler. See `docs/limitations.md`.
+
+
+## Evaluation dashboard and telemetry
+
+The browser console is served at `/dashboard`. The ASGI middleware records
+chat-completion request duration, status, selected worker/category, first
+non-empty response body timing, body-frame count and response bytes. Samples
+are held in a bounded in-process ring buffer (2,000 entries by default); process
+lifetime counters are not durable.
+
+- `GET /api/metrics/overview` — counters and recent-window latency percentiles.
+- `GET /api/metrics/workers` — current registry snapshot.
+- `GET /api/metrics/recent?limit=100` — recent request samples.
+- `GET /api/testing/capabilities` — mock fault-injection capability.
+- `POST /api/testing/faults` — opt-in, confirmed actions restricted to mock workers.
+
+The browser request lab measures client-observed first byte, first SSE content
+event, total request time and gaps between content events. These are not token
+timings: SSE events and ASGI body frames do not map one-to-one to generated
+tokens. Token-level TTFT/TPOT/ITL/jitter require tokenizer-aware provider
+telemetry and are not claimed by this dashboard.
