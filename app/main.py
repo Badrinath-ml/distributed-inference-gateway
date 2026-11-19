@@ -50,6 +50,7 @@ def build_workers() -> list[BaseWorker]:
                 timeout_seconds=settings.worker1_timeout_seconds,
                 max_concurrency=settings.worker1_max_concurrency,
                 health_timeout_seconds=settings.health_check_timeout_seconds,
+                enable_thinking=settings.vllm_enable_thinking,
             )
         )
 
