@@ -45,6 +45,41 @@ button.primary{background:linear-gradient(135deg,#9bc5ff,#6fa5f7);color:#081326}
 table{font-size:12px}th{position:sticky;top:0;background:#111d30}
 @media(max-width:700px){header{position:static}.tabs{width:100%}.tab{flex:1;padding:9px 8px;font-size:12px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:15px}.metric{padding:13px;min-height:100px}.metric .value{font-size:22px}.run-meta{grid-template-columns:1fr 1fr}}
 @media(max-width:430px){.grid{grid-template-columns:1fr}.run-meta{grid-template-columns:1fr}}
+
+/* Dashboard visual refresh: clearer hierarchy, responsive navigation and readable telemetry. */
+:root{--bg:#080d18;--panel:#101a2b;--panel2:#16243a;--line:#263750;--muted:#9aabc4;--text:#f2f6ff;--accent:#8ab4ff}
+body{background:radial-gradient(ellipse at 78% -15%,#203b65 0,transparent 34%),linear-gradient(180deg,#0a1120 0%,#080d18 70%);letter-spacing:.005em}
+header{max-width:1600px;margin:0 auto;padding-top:30px;padding-bottom:24px}
+header h1{font-size:clamp(23px,2.2vw,30px);letter-spacing:-.8px;margin-top:3px}
+header p{font-size:13px;margin-top:7px}
+.eyebrow{font-size:10px;letter-spacing:1.9px}
+main{max-width:1600px;padding-top:26px}
+.tabs{padding:6px;background:#0d1728;border:1px solid var(--line);border-radius:13px;width:max-content;max-width:100%;box-shadow:0 10px 30px #0003}
+.tab{border-color:transparent;padding:10px 16px;font-weight:650;font-size:12px}
+.tab.active{background:linear-gradient(135deg,#244574,#1a3153);border-color:#41669a;box-shadow:inset 0 1px #ffffff18}
+.panel,.metric{background:linear-gradient(155deg,#121f33,#0f192a 75%);border-color:#2a3d59;box-shadow:0 12px 30px #0002}
+.metric{padding:18px;transition:transform .16s ease,border-color .16s ease}
+.metric:hover{transform:translateY(-2px);border-color:#46658e}
+.metric .label{font-size:11px;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+.metric .value{font-size:29px;font-variant-numeric:tabular-nums}
+.panel{padding:20px}
+.panel h2{font-size:15px;font-weight:750}
+input,select,textarea{background:#0a1424;border-color:#30435f}
+textarea{line-height:1.65}
+button{transition:all .15s ease}
+button.primary{background:linear-gradient(135deg,#9bc2ff,#6f9de8);box-shadow:0 5px 16px #568ce733}
+.result{background:transparent;border:0;padding:0;max-height:none;font:inherit;white-space:normal}
+.run-summary{position:sticky;top:8px;z-index:2;background:#0d192b;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.run-card{background:linear-gradient(145deg,#142238,#101a2b);border-color:#304665;padding:16px;box-shadow:0 8px 22px #0002}
+.run-card-head b{font-size:13px}
+.run-meta{gap:9px 20px;font-size:11px}
+.run-meta span{background:#0c1728;border:1px solid #273a55;border-radius:7px;padding:5px 8px}
+.run-text{background:#091321;border:1px solid #263750;border-radius:10px;padding:16px;font:13px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:520px}
+.run-foot{line-height:1.8;border-top:1px solid #263750;padding-top:10px}
+.notice{border:1px solid #68552d;border-left:3px solid var(--amber);background:#211e19}
+.status{font-weight:700;letter-spacing:.2px}
+table th{position:sticky;top:0;background:#121e31}
+@media(max-width:700px){header{align-items:flex-start}main{padding-left:12px;padding-right:12px}.tabs{width:100%;overflow:auto}.tab{white-space:nowrap;padding:9px 12px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:13px}.metric .value{font-size:22px}.run-meta span{max-width:100%;overflow-wrap:anywhere}.run-text{font-size:12px;padding:12px}}
 </style></head>
 <body>
 <header><div><div class="eyebrow">Distributed Speculative Decoder Inference &amp; Semantic Routing Gateway</div><h1>Inference Control Center</h1><p>Runtime telemetry · request lab · worker resilience</p></div><div class="topline"><span class="dot" id="liveDot"></span><span id="connection">Connecting to gateway…</span><span class="muted" id="updated"></span></div></header>
@@ -153,6 +188,9 @@ $("addMockWorker").addEventListener("click",async()=>{
  const r=await fetch("/api/workers/mock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const d=await r.json();$("workerActionStatus").textContent=r.ok?d.message:(d.detail||"Could not add worker");if(r.ok){refresh();loadFaultControls()}
 });
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));["overview","requests","workers","history"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab))}));
+function cleanAssistantText(value){
+ return String(value??"").replace(/<think>[\\s\\S]*?<\\/think>/gi,"").replace(/<think>[\\s\\S]*$/i,"").trim();
+}
 function extractText(payload){
  const choices=payload?.choices||[];
  return choices.map(c=>c?.message?.content??c?.text??"").map(v=>Array.isArray(v)?v.map(p=>p?.text||"").join(""):String(v)).join("\n");
@@ -176,8 +214,9 @@ async function sendOne(prompt,stream){
   if(stream){buffer+=chunk;const parts=buffer.split(/\r?\n\r?\n/);buffer=parts.pop()||"";for(const part of parts)consumeEvent(part);}else rawBody+=chunk;
  }
  if(stream&&buffer.trim())consumeEvent(buffer);
- if(!stream){try{parsed=JSON.parse(rawBody);model=parsed.model||null;generated=extractText(parsed);usage=parsed.usage||null;finishReason=parsed.choices?.[0]?.finish_reason||null;}catch{generated=rawBody;}}
+ if(!stream){try{parsed=JSON.parse(rawBody);model=parsed.model||null;generated=cleanAssistantText(extractText(parsed));usage=parsed.usage||null;finishReason=parsed.choices?.[0]?.finish_reason||null;}catch{generated=rawBody;}}
  const total=performance.now()-started;
+ generated=cleanAssistantText(generated);
  return {ok:response.ok,...metadata,model,generated_text:generated,usage,finish_reason:finishReason,client_first_byte_ms:firstByte,first_content_event_ms:firstContent,client_total_ms:total,asgi_read_frames:frames,sse_events:events,content_events:contentEvents,content_event_gap_median_ms:median(gaps),error:response.ok?null:(parsed?.error?.message||parsed?.detail||rawBody.slice(0,1200))};
 }
 function renderRunResults(results,summary){
