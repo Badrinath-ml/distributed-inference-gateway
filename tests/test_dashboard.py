@@ -40,7 +40,7 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         self.router_patch = mock.patch("app.main.SemanticRouter", FakeSemanticRouter)
         self.build_patch = mock.patch(
             "app.main.build_workers",
-            return_value=[self.mock_worker, self.real_worker],
+            return_value=[self.real_worker, self.mock_worker],
         )
         self.router_patch.start()
         self.build_patch.start()
@@ -87,6 +87,19 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         )
         recent = await self.client.get("/api/metrics/recent?limit=10")
         self.assertTrue(recent.json()["requests"])
+
+    async def test_worker_controls_and_dynamic_mock_registration(self) -> None:
+        disabled = await self.client.put("/api/workers/dashboard-mock/availability", json={"available": False})
+        self.assertEqual(disabled.status_code, 200)
+        self.assertFalse(app.state.worker_registry.require("dashboard-mock").available)
+        enabled = await self.client.put("/api/workers/dashboard-mock/availability", json={"available": True})
+        self.assertEqual(enabled.status_code, 200)
+        added = await self.client.post("/api/workers/mock", json={"worker_id": "dashboard-extra", "latency_ms": 5, "max_concurrency": 3})
+        self.assertEqual(added.status_code, 200)
+        self.assertEqual(app.state.worker_registry.require("dashboard-extra").metadata.provider, "mock")
+        removed = await self.client.delete("/api/workers/dashboard-extra")
+        self.assertEqual(removed.status_code, 200)
+        self.assertIsNone(app.state.worker_registry.get("dashboard-extra"))
 
     async def test_fault_injection_is_disabled_and_mock_only(self) -> None:
         payload = {
