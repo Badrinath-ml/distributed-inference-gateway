@@ -156,7 +156,12 @@ table th{background:var(--panel);color:var(--muted)}
 </section>
 <section id="requests" class="hidden">
 <div class="panel"><h2>Send requests through the gateway</h2><p>Requests use the same OpenAI-compatible endpoint as your clients. Keep the batch small on a laptop GPU.</p>
-<label class="muted">Prompt</label><textarea id="prompt">Explain why bounded concurrency matters in an inference gateway. Keep it concise.</textarea>
+<div class="prompt-tools">
+ <div><label class="muted" for="samplePrompt">Sample prompt library · 50 scenarios</label><select id="samplePrompt"><option value="">Choose a sample prompt…</option></select></div>
+ <div><label class="muted" for="promptCategory">Category filter</label><select id="promptCategory"><option value="all">All categories</option><option value="general">General</option><option value="reasoning">Reasoning</option><option value="coding">Coding</option><option value="summarization">Summarization</option><option value="data">Data analysis</option><option value="creative">Creative</option></select></div>
+ <div class="actions"><button id="loadSample">Load sample</button><button class="primary suite-action" id="runSuite">Run 50-prompt suite</button></div>
+</div>
+<div class="section"><label class="muted" for="prompt">Prompt (editable)</label><textarea id="prompt">Explain why bounded concurrency matters in an inference gateway. Keep it concise.</textarea><div class="prompt-suite"><span class="chip" id="promptCount">50 curated prompts</span><span class="chip">Varied semantic categories</span><span class="chip">Different output budgets</span><span class="chip">Suite defaults to concurrency 1</span></div></div>
 <div class="formgrid section">
 <div><label class="muted">Streaming mode</label><select id="streamMode"><option value="true">Streaming (SSE)</option><option value="false">Non-streaming</option></select></div>
 <div><label class="muted">Request count</label><input id="requestCount" type="number" min="1" max="50" value="1"></div>
@@ -184,7 +189,7 @@ table th{background:var(--panel);color:var(--muted)}
 <p class="footer">Telemetry is process-local and bounded. It is not a durable monitoring backend. Use Prometheus/OpenTelemetry when operating multiple gateway replicas.</p>
 </main>
 <script>
-const $=id=>document.getElementById(id);
+const SAMPLE_PROMPTS = [["general","Explain the role of an inference gateway in a production AI system.",96],["general","Compare synchronous and asynchronous request handling in a web API.",128],["general","Explain bounded concurrency using a simple real-world analogy.",96],["general","What is the difference between throughput and latency? Give an example.",96],["general","Describe how semantic routing can select between specialized language models.",128],["general","Explain why health checks should have strict timeouts.",96],["general","Summarize the purpose of a worker registry in a distributed inference system.",96],["general","What information should a useful inference request log contain?",128],["general","Explain the difference between process-level and request-level metrics.",128],["general","Describe the lifecycle of an HTTP streaming response.",128],["reasoning","A service handles 20 requests per second at 200 ms average latency. Estimate average in-flight requests using Little's Law and explain.",128],["reasoning","A gateway has three workers with loads 2/4, 1/2 and 3/8. Which has the lowest normalized load?",96],["reasoning","If p50 latency is 100 ms and p95 is 900 ms, what does that suggest about the tail?",128],["reasoning","A speculative decoder drafts 600 tokens and accepts 240. Calculate acceptance rate and interpret it.",96],["reasoning","A request fails before connecting to a worker. Explain why retrying may be safe, unlike retrying after generation starts.",128],["reasoning","Explain the trade-offs between increasing batch size and interactive latency in LLM serving.",128],["reasoning","A system has 2 GPU workers, each limited to 3 concurrent sequences. What is the maximum active sequence capacity?",96],["reasoning","Explain why p95 and p99 are often more useful than average latency for user-facing systems.",128],["reasoning","A worker is healthy but marked unavailable. Should the scheduler select it? Explain.",96],["reasoning","Describe how a circuit breaker differs from a health check.",128],["coding","Write a Python function that calculates the median of a list of numbers without modifying the input.",128],["coding","Show a FastAPI endpoint that validates a positive integer query parameter.",128],["coding","Write Python code to asynchronously query three HTTP endpoints concurrently using httpx.",160],["coding","Implement a Python exponential backoff delay function with a maximum cap.",128],["coding","Write a Python function that groups request records by worker_id.",128],["coding","Show how to use a semaphore to limit concurrent asyncio tasks to five.",128],["coding","Write a small Python function that calculates speculative acceptance rate safely when draft count is zero.",96],["coding","Create a Pydantic model for an inference request with prompt, max_tokens and stream fields.",128],["coding","Write a JavaScript function that computes the 95th percentile from a numeric array.",128],["coding","Show a Python generator that yields chunks from a string in fixed-size pieces.",96],["summarization","Summarize the following in three bullets: a gateway authenticates requests, classifies intent, selects a healthy worker, streams output, and records metrics.",96],["summarization","Turn this incident note into a concise status update: the cloud worker returned 429, local fallback succeeded, and no requests were lost.",96],["summarization","Summarize the benefits and risks of speculative decoding for an engineering manager.",128],["summarization","Create a short checklist for validating a new inference worker before production traffic.",128],["summarization","Summarize why dashboards should label approximate metrics and their data sources.",96],["data","Given request latencies [80, 90, 95, 110, 600], calculate the mean and median and explain the outlier effect.",128],["data","Design a compact JSON schema for recording latency, worker identity, status and token usage.",128],["data","Which chart would best show latency changes over time, and what should its axes represent?",96],["data","Explain how to compare two inference configurations using a controlled benchmark.",128],["data","A benchmark has 98 successes and 2 failures from 100 requests. Calculate the success rate.",96],["creative","Explain semantic routing as a short story about a busy restaurant assigning orders to chefs.",128],["creative","Create a memorable analogy for time to first token versus time per output token.",96],["creative","Write a concise product description for a distributed inference gateway dashboard.",128],["creative","Describe a futuristic but practical control room for monitoring AI inference workers.",128],["creative","Give five concise names for a dashboard section focused on worker reliability.",96],["general","Explain the difference between an HTTP 429 and HTTP 503 response in an inference gateway.",96],["reasoning","A streaming request emits 40 SSE events, but each event may contain multiple tokens. Can event count determine output token count? Explain.",96],["coding","Write a TypeScript type for a worker health record with id, status, inFlight and available fields.",128],["data","Propose a fair test matrix for comparing concurrency levels 1, 2, 4 and 8 without changing prompt content.",128],["general","Explain why an in-memory metrics store is insufficient for a multi-replica production deployment.",128]];\nconst $=id=>document.getElementById(id);
 let lastWorkers=[];
 function ms(v){return v==null?"—":Number(v).toFixed(1)+" ms"}
 function pct(v){return (Number(v||0)*100).toFixed(1)+"%"}
@@ -245,9 +250,9 @@ function extractText(payload){
  const choices=payload?.choices||[];
  return choices.map(c=>c?.message?.content??c?.text??"").map(v=>Array.isArray(v)?v.map(p=>p?.text||"").join(""):String(v)).join("\n");
 }
-async function sendOne(prompt,stream){
+async function sendOne(prompt,stream,maxTokens=128,promptLabel="Custom prompt"){
  const started=performance.now();let firstByte=null,firstContent=null,frames=0,events=0,contentEvents=0,lastContent=null,gaps=[],rawBody="",generated="",usage=null,finishReason=null,model=null,parsed=null;
- const response=await fetch("/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:prompt}],stream,max_tokens:128,temperature:0})});
+ const response=await fetch("/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:prompt}],stream,max_tokens:maxTokens,temperature:0})});
  const metadata={status:response.status,request_id:response.headers.get("x-request-id"),worker_id:response.headers.get("x-worker-id"),semantic_category:response.headers.get("x-semantic-category"),routing_decision:response.headers.get("x-routing-decision"),content_type:response.headers.get("content-type")};
  if(!response.body)throw Error("Response has no body");
  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer="";
@@ -267,26 +272,45 @@ async function sendOne(prompt,stream){
  if(!stream){try{parsed=JSON.parse(rawBody);model=parsed.model||null;generated=cleanAssistantText(extractText(parsed));usage=parsed.usage||null;finishReason=parsed.choices?.[0]?.finish_reason||null;}catch{generated=rawBody;}}
  const total=performance.now()-started;
  generated=cleanAssistantText(generated);
- return {ok:response.ok,...metadata,model,generated_text:generated,usage,finish_reason:finishReason,client_first_byte_ms:firstByte,first_content_event_ms:firstContent,client_total_ms:total,asgi_read_frames:frames,sse_events:events,content_events:contentEvents,content_event_gap_median_ms:median(gaps),error:response.ok?null:(parsed?.error?.message||parsed?.detail||rawBody.slice(0,1200))};
+ return {ok:response.ok,...metadata,prompt_label:promptLabel,max_tokens:maxTokens,model,generated_text:generated,usage,finish_reason:finishReason,client_first_byte_ms:firstByte,first_content_event_ms:firstContent,client_total_ms:total,asgi_read_frames:frames,sse_events:events,content_events:contentEvents,content_event_gap_median_ms:median(gaps),error:response.ok?null:(parsed?.error?.message||parsed?.detail||rawBody.slice(0,1200))};
 }
 function renderRunResults(results,summary){
  const cards=results.map((r,i)=>{
   const text=r.generated_text||r.error||"(No text content returned)";
   const usage=r.usage?(r.usage.prompt_tokens??"—")+" prompt · "+(r.usage.completion_tokens??"—")+" completion · "+(r.usage.total_tokens??"—")+" total":"Usage not supplied by worker";
-  return "<article class='run-card'><div class='run-card-head'><b>Request "+(i+1)+"</b><span class='status "+(r.ok?"healthy":"unhealthy")+"'>"+(r.ok?"HTTP "+r.status:"Failed")+"</span></div><div class='run-meta'><span>Worker: <b>"+esc(r.worker_id||"unreported")+"</b></span><span>Category: <b>"+esc(r.semantic_category||"—")+"</b></span><span>Route: <b>"+esc(r.routing_decision||"—")+"</b></span><span>Model: <b>"+esc(r.model||"not returned")+"</b></span><span>Request ID: <b>"+esc(r.request_id||"—")+"</b></span><span>Finish: <b>"+esc(r.finish_reason||"—")+"</b></span></div><div class='run-text'>"+esc(text)+"</div><div class='run-foot'>"+esc(usage)+" · first byte "+ms(r.client_first_byte_ms)+" · first content "+ms(r.first_content_event_ms)+" · total "+ms(r.client_total_ms)+" · "+(r.sse_events??0)+" SSE events / "+(r.content_events??0)+" content events</div></article>";
+  return "<article class='run-card'><div class='run-card-head'><b>Request "+(i+1)+" · "+esc(r.prompt_label||"Custom prompt")+"</b><span class='status "+(r.ok?"healthy":"unhealthy")+"'>"+(r.ok?"HTTP "+r.status:"Failed")+"</span></div><div class='run-meta'><span>Worker: <b>"+esc(r.worker_id||"unreported")+"</b></span><span>Category: <b>"+esc(r.semantic_category||"—")+"</b></span><span>Route: <b>"+esc(r.routing_decision||"—")+"</b></span><span>Model: <b>"+esc(r.model||"not returned")+"</b></span><span>Request ID: <b>"+esc(r.request_id||"—")+"</b></span><span>Finish: <b>"+esc(r.finish_reason||"—")+"</b></span></div><div class='run-text'>"+esc(text)+"</div><div class='run-foot'>"+esc(usage)+" · first byte "+ms(r.client_first_byte_ms)+" · first content "+ms(r.first_content_event_ms)+" · total "+ms(r.client_total_ms)+" · "+(r.sse_events??0)+" SSE events / "+(r.content_events??0)+" content events</div></article>";
  }).join("");
  $("runOutput").innerHTML="<div class='run-summary'><b>"+summary.successes+"/"+summary.requests+" successful</b><span>"+summary.mode+"</span><span>Concurrency "+summary.concurrency+"</span><span>Median total "+ms(summary.client_medians.total_ms)+"</span></div>"+cards;
 }
+async function runPromptBatch(items,modeLabel){
+ const concurrency=Math.max(1,Math.min(10,items.length,Number($("concurrency").value)||1)),stream=$("streamMode").value==="true";
+ $("runRequests").disabled=true;$("runSuite").disabled=true;$("runRequests").textContent="Running…";$("runOutput").textContent="Running "+items.length+" distinct prompts…";
+ const results=new Array(items.length);let next=0;
+ const worker=async()=>{while(next<items.length){const i=next++;const item=items[i];try{results[i]=await sendOne(item[1],stream,item[2],item[3]);results[i].prompt_category=item[0];}catch(e){results[i]={ok:false,error:e.message,prompt_label:item[3],prompt_category:item[0]};}}};
+ try{await Promise.all(Array.from({length:concurrency},worker));
+  const good=results.filter(x=>x.ok),first=good.map(x=>x.client_first_byte_ms).filter(x=>x!=null),content=good.map(x=>x.first_content_event_ms).filter(x=>x!=null),total=good.map(x=>x.client_total_ms).filter(x=>x!=null);
+  $("clientFirstByte").textContent=ms(median(first));$("firstContent").textContent=ms(median(content));$("clientTotal").textContent=ms(median(total));$("runSuccess").textContent=good.length+" / "+items.length;$("runFailures").textContent=(items.length-good.length)+" failed";
+  renderRunResults(results,{mode:stream?"streaming":"non-streaming",requests:items.length,concurrency,successes:good.length,client_medians:{total_ms:median(total)}});
+  refresh();
+ }finally{$("runRequests").disabled=false;$("runSuite").disabled=false;$("runRequests").textContent="Run test";}
+}
 $("runRequests").addEventListener("click",async()=>{
- const count=Math.max(1,Math.min(50,Number($("requestCount").value)||1)),concurrency=Math.max(1,Math.min(10,count,Number($("concurrency").value)||1)),stream=$("streamMode").value==="true",prompt=$("prompt").value.trim();
- if(!prompt){$("runOutput").textContent="Enter a prompt first.";return}
- $("runRequests").disabled=true;$("runRequests").textContent="Running…";$("runOutput").textContent="Requests are running…";const results=new Array(count);let next=0;
- const worker=async()=>{while(next<count){const i=next++;try{results[i]=await sendOne(prompt,stream)}catch(e){results[i]={ok:false,error:e.message}}}};
- try{await Promise.all(Array.from({length:concurrency},worker));const good=results.filter(x=>x.ok),first=good.map(x=>x.client_first_byte_ms).filter(x=>x!=null),content=good.map(x=>x.first_content_event_ms).filter(x=>x!=null),total=good.map(x=>x.client_total_ms).filter(x=>x!=null);
-  $("clientFirstByte").textContent=ms(median(first));$("firstContent").textContent=ms(median(content));$("clientTotal").textContent=ms(median(total));$("runSuccess").textContent=good.length+" / "+count;$("runFailures").textContent=(count-good.length)+" failed";
-  renderRunResults(results,{mode:stream?"streaming":"non-streaming",requests:count,concurrency,successes:good.length,client_medians:{first_byte_ms:median(first),first_content_event_ms:median(content),total_ms:median(total)}});refresh();
- }finally{$("runRequests").disabled=false;$("runRequests").textContent="Run test"}
+ const prompt=$("prompt").value.trim();if(!prompt){$("runOutput").textContent="Enter a prompt first.";return}
+ const maxTokens=128;const item=["custom",prompt,maxTokens,"Custom prompt"];await runPromptBatch([item],"single");
 });
+$("runSuite").addEventListener("click",async()=>{
+ if(!confirm("Run all 50 distinct prompts against the configured inference workers? This sends 50 real inference requests and may consume GPU time or cloud credits."))return;
+ const items=SAMPLE_PROMPTS.map((p,i)=>[p[0],p[1],p[2],(i+1)+". "+p[0]+" · "+p[1].slice(0,52)]);
+ await runPromptBatch(items,"suite");
+});
+function populatePromptLibrary(){
+ const category=$("promptCategory").value,select=$("samplePrompt"),filtered=SAMPLE_PROMPTS.map((p,i)=>({p,i})).filter(x=>category==="all"||x.p[0]===category);
+ select.innerHTML='<option value="">Choose a sample prompt…</option>'+filtered.map(x=>'<option value="'+x.i+'">'+(x.i+1)+'. ['+esc(x.p[0])+'] '+esc(x.p[1].slice(0,82))+'</option>').join("");
+ $("promptCount").textContent=filtered.length+" prompts shown · "+SAMPLE_PROMPTS.length+" total";
+}
+$("promptCategory").addEventListener("change",populatePromptLibrary);
+$("loadSample").addEventListener("click",()=>{const i=Number($("samplePrompt").value);if(!Number.isInteger(i)||!SAMPLE_PROMPTS[i])return;$("prompt").value=SAMPLE_PROMPTS[i][1];});
+populatePromptLibrary();
 $("clearResults").addEventListener("click",()=>{$("runOutput").textContent="No requests sent yet.";["clientFirstByte","firstContent","clientTotal","runSuccess"].forEach(x=>$(x).textContent="—");$("runFailures").textContent="No test run yet"});
 async function loadFaultControls(){
  try{const x=await get("/api/testing/capabilities");const mocks=x.mock_workers||[];if(!x.enabled||!mocks.length){$("faultControls").textContent=x.enabled?"No mock workers registered. Enable MOCK_WORKER_ENABLED=true.":"Disabled by configuration. Set DASHBOARD_FAULT_INJECTION_ENABLED=true and restart the gateway.";return}
