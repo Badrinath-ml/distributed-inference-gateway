@@ -230,6 +230,12 @@ class LocalVLLMWorker(BaseWorker):
             close=upstream.aclose,
         )
 
+    async def metrics_text(self) -> str:
+        """Return the local vLLM Prometheus exposition, if its metrics endpoint is enabled."""
+        response = await self._client.get(f"{self._base_url}/metrics", timeout=self._health_timeout_seconds)
+        response.raise_for_status()
+        return response.text
+
     async def aclose(self) -> None:
         if self._owns_client:
             await self._client.aclose()
