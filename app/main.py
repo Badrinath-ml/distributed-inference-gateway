@@ -299,7 +299,6 @@ async def add_mock_worker(payload: dict, request: Request):
         record = request.app.state.worker_registry.register(worker)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
-    request.app.state.health_monitor  # health is explicitly marked healthy for a newly-created deterministic mock
     request.app.state.worker_registry.mark_health(worker_id, True)
     return {"worker": request.app.state.worker_registry.require(worker_id).as_dict(), "message": "Mock worker added."}
 
@@ -309,7 +308,7 @@ async def remove_mock_worker(worker_id: str, request: Request):
     try:
         record = request.app.state.worker_registry.require(worker_id)
         if not isinstance(record.worker, MockWorker):
-            raise HTTPException(status_code=403, detail="Only dashboard-created mock workers can be removed.")
+            raise HTTPException(status_code=403, detail="Only mock workers can be removed.")
         worker = request.app.state.worker_registry.unregister(worker_id)
         await worker.aclose()
         return {"worker_id": worker_id, "removed": True}
