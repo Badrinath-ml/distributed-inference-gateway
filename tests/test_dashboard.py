@@ -15,8 +15,8 @@ from app.workers import LocalVLLMWorker, MockWorker
 class FakeSemanticRouter:
     def route(self, prompt: str):
         return {
-            "category": "general",
-            "scores": {"coding": 0.1, "reasoning": 0.2, "general": 0.8},
+            "category": "coding",
+            "scores": {"coding": 0.8, "reasoning": 0.2, "general": 0.1},
             "top_score": 0.8,
             "margin": 0.6,
         }
@@ -40,7 +40,7 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         self.router_patch = mock.patch("app.main.SemanticRouter", FakeSemanticRouter)
         self.build_patch = mock.patch(
             "app.main.build_workers",
-            return_value=[self.mock_worker, self.real_worker],
+            return_value=[self.real_worker, self.mock_worker],
         )
         self.router_patch.start()
         self.build_patch.start()
@@ -66,7 +66,7 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         page = await self.client.get("/dashboard")
         self.assertEqual(page.status_code, 200)
         self.assertIn("text/html", page.headers.get("content-type", ""))
-        self.assertIn("Evaluation Console", page.text)
+        self.assertIn("Distributed Speculative Decoder Inference", page.text)
 
         before = metrics.snapshot()["requests_total"]
         response = await self.client.post(
@@ -75,6 +75,9 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers.get("x-request-id"))
+        self.assertEqual(response.headers.get("x-semantic-category"), "coding")
+        self.assertEqual(response.headers.get("x-worker-id"), "dashboard-mock")
+        self.assertEqual(response.headers.get("x-routing-decision"), "semantic-specialized")
 
         overview = await self.client.get("/api/metrics/overview")
         self.assertEqual(overview.status_code, 200)
@@ -85,8 +88,58 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
             {item["worker_id"] for item in workers.json()["workers"]},
             {"dashboard-mock", "dashboard-local"},
         )
+        self.assertIn("worker_metrics", overview.json())
         recent = await self.client.get("/api/metrics/recent?limit=10")
         self.assertTrue(recent.json()["requests"])
+        vllm = await self.client.get("/api/metrics/vllm")
+        self.assertEqual(vllm.status_code, 200)
+        self.assertFalse(vllm.json()["available"])
+
+    async def test_vllm_metrics_parser_exposes_speculation_and_token_latency(self) -> None:
+        exposition = """# HELP vllm metrics
+vllm:spec_decode_num_draft_tokens_total 100
+vllm:spec_decode_num_accepted_tokens_total 60
+vllm:time_to_first_token_seconds_sum 2
+vllm:time_to_first_token_seconds_count 10
+vllm:time_per_output_token_seconds_sum 0.5
+vllm:time_per_output_token_seconds_count 10
+vllm:inter_token_latency_seconds_sum 0.2
+vllm:inter_token_latency_seconds_count 10
+vllm:time_to_first_token_seconds_bucket{le="0.1"} 5
+vllm:time_to_first_token_seconds_bucket{le="0.2"} 9
+vllm:time_to_first_token_seconds_bucket{le="+Inf"} 10
+vllm:time_per_output_token_seconds_bucket{le="0.01"} 5
+vllm:time_per_output_token_seconds_bucket{le="0.1"} 9
+vllm:time_per_output_token_seconds_bucket{le="+Inf"} 10
+vllm:inter_token_latency_seconds_bucket{le="0.01"} 5
+vllm:inter_token_latency_seconds_bucket{le="0.02"} 9
+vllm:inter_token_latency_seconds_bucket{le="+Inf"} 10
+"""
+        async def fake_metrics_text(_worker):
+            return exposition
+        with mock.patch.object(LocalVLLMWorker, "metrics_text", fake_metrics_text):
+            response = await self.client.get("/api/metrics/vllm")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["available"], data)
+        self.assertEqual(data["speculative_decoding"]["acceptance_rate"], 0.6)
+        self.assertEqual(data["launch_profile"]["draft_model"], "Qwen/Qwen3-0.6B")
+        self.assertEqual(data["launch_profile"]["kv_cache_memory_mib"], 512)
+        self.assertEqual(data["histogram_quantiles_ms"]["ttft"]["p50"], 100.0)
+        self.assertEqual(data["inter_token_jitter_ms"], 10.0)
+
+    async def test_worker_controls_and_dynamic_mock_registration(self) -> None:
+        disabled = await self.client.put("/api/workers/dashboard-mock/availability", json={"available": False})
+        self.assertEqual(disabled.status_code, 200)
+        self.assertFalse(app.state.worker_registry.require("dashboard-mock").available)
+        enabled = await self.client.put("/api/workers/dashboard-mock/availability", json={"available": True})
+        self.assertEqual(enabled.status_code, 200)
+        added = await self.client.post("/api/workers/mock", json={"worker_id": "dashboard-extra", "latency_ms": 5, "max_concurrency": 3})
+        self.assertEqual(added.status_code, 200)
+        self.assertEqual(app.state.worker_registry.require("dashboard-extra").metadata.provider, "mock")
+        removed = await self.client.delete("/api/workers/dashboard-extra")
+        self.assertEqual(removed.status_code, 200)
+        self.assertIsNone(app.state.worker_registry.get("dashboard-extra"))
 
     async def test_fault_injection_is_disabled_and_mock_only(self) -> None:
         payload = {

@@ -36,11 +36,13 @@ def _select(
     exclude: set[str],
     *,
     retrying: bool,
+    route_category: str | None = None,
 ):
     try:
-        return scheduler.select(required_capabilities, exclude=exclude)
+        return scheduler.select(required_capabilities, exclude=exclude, route_category=route_category)
     except NoEligibleWorkersError as exc:
         if retrying:
+            metrics.record_failover_result(False)
             raise WorkerUnavailableError(
                 "no alternative worker is available after a connection failure"
             ) from exc
@@ -64,11 +66,14 @@ async def generate_completion(
             CHAT_REQUIRED,
             excluded,
             retrying=attempt > 0,
+            route_category=route_category,
         )
         try:
             body = await record.worker.chat_completion(payload)
         except WorkerUnavailableError:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             if not retry_on_connect_error or attempt >= 1:
                 raise
             logger.warning(
@@ -81,9 +86,13 @@ async def generate_completion(
             continue
         except BaseException:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             raise
 
         scheduler.release(record)
+        if attempt > 0:
+            metrics.record_failover_result(True)
         logger.info(
             "Routed completion to worker=%s provider=%s category=%s",
             record.worker_id,
@@ -92,7 +101,7 @@ async def generate_completion(
         )
         return JSONResponse(
             content=body,
-            headers=_response_headers(route_category, record.worker_id),
+            headers={**_response_headers(route_category, record.worker_id), "X-Routing-Decision": "semantic-specialized" if record.metadata.routing_categories and route_category in record.metadata.routing_categories else "load-health-fallback"},
         )
 
 
@@ -119,11 +128,14 @@ async def stream_completion(
             STREAM_REQUIRED,
             excluded,
             retrying=attempt > 0,
+            route_category=route_category,
         )
         try:
             stream = await record.worker.open_stream(payload)
         except WorkerUnavailableError:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             if not retry_on_connect_error or attempt >= 1:
                 raise
             logger.warning(
@@ -136,6 +148,8 @@ async def stream_completion(
             continue
         except BaseException:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             raise
         break
 
@@ -153,11 +167,15 @@ async def stream_completion(
         await release_once()
 
     async def event_stream():
+        completed = False
         try:
             async for chunk in stream.body_iterator:
                 yield chunk
+            completed = True
         finally:
             await cleanup()
+            if attempt > 0:
+                metrics.record_failover_result(completed)
 
     logger.info(
         "Routed stream to worker=%s provider=%s category=%s",
@@ -166,6 +184,7 @@ async def stream_completion(
         route_category,
     )
     headers = _response_headers(route_category, record.worker_id)
+    headers["X-Routing-Decision"] = "semantic-specialized" if record.metadata.routing_categories and route_category in record.metadata.routing_categories else "load-health-fallback"
     headers.update(
         {
             "Cache-Control": "no-cache",

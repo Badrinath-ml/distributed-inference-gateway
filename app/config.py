@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     openrouter_timeout_seconds: float = Field(default=60.0, gt=0)
     openrouter_max_concurrency: int = Field(default=4, ge=1, le=64)
     openrouter_site_url: str | None = None
-    openrouter_app_name: str = "distributed-inference-gateway"
+    openrouter_app_name: str = "distributed-speculative-decoder-inference-semantic-routing-gateway"
 
     # Worker 3: deterministic mock worker (development/tests only).
     mock_worker_enabled: bool = False

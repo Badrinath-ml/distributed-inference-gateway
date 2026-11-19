@@ -74,7 +74,7 @@ is held until the response body finishes, fails or the client disconnects. A
 - the worker's own `is_available` property is true,
 - it supports the required capabilities (`chat`, plus `streaming` for SSE).
 
-The scheduler rotates the eligible list on each call to avoid always ordering
+When a semantic category has an eligible specialized worker, the scheduler restricts selection to workers advertising that category. Local vLLM specializes in `general` and `reasoning`; OpenRouter specializes in `coding`. If no specialist is eligible, it falls back to all eligible workers. The scheduler rotates the eligible list on each call to avoid always ordering
 equal candidates the same way, then chooses the minimum
 `(in_flight / max_concurrency, in_flight)` tuple. `max_concurrency` is a routing
 weight, not a hard admission limit: vLLM and OpenRouter enforce their own
@@ -144,6 +144,9 @@ lifetime counters are not durable.
 
 - `GET /api/metrics/overview` — counters and recent-window latency percentiles.
 - `GET /api/metrics/workers` — current registry snapshot.
+- `GET /api/metrics/vllm` — local vLLM `/metrics` scrape for speculative-decoding counters and available TTFT/TPOT/inter-token aggregates.
+- `PUT /api/workers/{worker_id}/availability` — enable or drain a registered worker from new scheduling.
+- `POST /api/workers/mock` and `DELETE /api/workers/{worker_id}` — add/remove runtime mock workers for controlled tests.
 - `GET /api/metrics/recent?limit=100` — recent request samples.
 - `GET /api/testing/capabilities` — mock fault-injection capability.
 - `POST /api/testing/faults` — opt-in, confirmed actions restricted to mock workers.
@@ -151,5 +154,4 @@ lifetime counters are not durable.
 The browser request lab measures client-observed first byte, first SSE content
 event, total request time and gaps between content events. These are not token
 timings: SSE events and ASGI body frames do not map one-to-one to generated
-tokens. Token-level TTFT/TPOT/ITL/jitter require tokenizer-aware provider
-telemetry and are not claimed by this dashboard.
+tokens. The dashboard reads vLLM process-level Prometheus metrics separately from gateway timings. Cloud token-level timing is not claimed unless the provider exposes reliable token timestamps. Browser content-event gaps are explicitly not token-level ITL.

@@ -38,6 +38,8 @@ class MetricsStore:
         self._requests_failed = 0
         self._active_requests = 0
         self._failovers = 0
+        self._failover_successes = 0
+        self._failover_failures = 0
 
     def begin(self) -> None:
         with self._lock:
@@ -46,6 +48,13 @@ class MetricsStore:
     def record_failover(self) -> None:
         with self._lock:
             self._failovers += 1
+
+    def record_failover_result(self, success: bool) -> None:
+        with self._lock:
+            if success:
+                self._failover_successes += 1
+            else:
+                self._failover_failures += 1
 
     def finish(self, sample: dict[str, Any]) -> None:
         with self._lock:
@@ -62,6 +71,8 @@ class MetricsStore:
             failed = self._requests_failed
             active = self._active_requests
             failovers = self._failovers
+            failover_successes = self._failover_successes
+            failover_failures = self._failover_failures
         durations = [float(row["gateway_duration_ms"]) for row in samples]
         first_chunks = [
             float(row["gateway_first_body_ms"])
@@ -85,6 +96,9 @@ class MetricsStore:
             "error_rate": round(failed / total, 4) if total else 0.0,
             "active_requests": active,
             "failovers_total": failovers,
+            "failover_successes": failover_successes,
+            "failover_failures": failover_failures,
+            "failover_success_rate": round(failover_successes / (failover_successes + failover_failures), 4) if failover_successes + failover_failures else None,
             "samples_retained": len(samples),
             "sample_capacity": self._samples.maxlen,
             "gateway_duration_ms": {
@@ -172,6 +186,7 @@ class MetricsMiddleware:
                     "status_code": status_code,
                     "worker_id": response_headers.get("x-worker-id"),
                     "semantic_category": response_headers.get("x-semantic-category"),
+                    "routing_decision": response_headers.get("x-routing-decision"),
                     "streaming": "text/event-stream" in response_headers.get("content-type", ""),
                     "gateway_duration_ms": round((finished - started) * 1000, 3),
                     "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
@@ -190,6 +205,7 @@ class MetricsMiddleware:
                     "status_code": status_code,
                     "worker_id": response_headers.get("x-worker-id"),
                     "semantic_category": response_headers.get("x-semantic-category"),
+                    "routing_decision": response_headers.get("x-routing-decision"),
                     "streaming": "text/event-stream" in response_headers.get("content-type", ""),
                     "gateway_duration_ms": round((finished - started) * 1000, 3),
                     "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,
@@ -207,6 +223,7 @@ class MetricsMiddleware:
                     "status_code": status_code,
                     "worker_id": response_headers.get("x-worker-id"),
                     "semantic_category": response_headers.get("x-semantic-category"),
+                    "routing_decision": response_headers.get("x-routing-decision"),
                     "streaming": "text/event-stream" in response_headers.get("content-type", ""),
                     "gateway_duration_ms": round((finished - started) * 1000, 3),
                     "gateway_first_body_ms": round((first_body_at - started) * 1000, 3) if first_body_at else None,

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Inference Gateway · Evaluation Console</title>
+<title>Distributed Speculative Decoder Inference & Semantic Routing Gateway</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1020;--panel:#121a2d;--panel2:#17223a;--line:#273550;--muted:#91a0ba;--text:#edf2ff;--accent:#79a8ff;--green:#48d6a0;--red:#ff7185;--amber:#f4c66a}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 10% 0%,#1b2b4d 0,transparent 35%),var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -14,9 +14,9 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;p
 button.primary{background:var(--accent);color:#091225;border:0;font-weight:750}button.danger{border-color:#704052;color:#ff9bab}button,select,input,textarea{font:inherit}button{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 12px;border-radius:8px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}
 input,select,textarea{width:100%;background:#0d1526;border:1px solid var(--line);border-radius:8px;padding:10px;color:var(--text)}textarea{min-height:110px;resize:vertical}.formgrid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.result{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1323;border:1px solid var(--line);border-radius:9px;padding:12px;max-height:340px;overflow:auto;font:12px/1.5 ui-monospace,monospace}.notice{border-left:3px solid var(--amber);padding:10px 12px;background:#2a2519;color:#e8d5a8;border-radius:0 8px 8px 0;font-size:12px}.hidden{display:none!important}.footer{font-size:11px;color:var(--muted);margin-top:18px}
 @media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.split{grid-template-columns:1fr}}@media(max-width:560px){.grid{grid-template-columns:1fr 1fr}.metric .value{font-size:22px}.formgrid{grid-template-columns:1fr}}
-</style></head>
+button:hover{border-color:#5677a8;filter:brightness(1.08)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.panel h2{letter-spacing:.1px}.metric{box-shadow:0 6px 18px #0002}.tab{transition:background .15s ease,border-color .15s ease}.worker{align-items:center}.worker .actions{margin-top:8px}.worker .actions button{font-size:11px;padding:6px 9px}.notice{line-height:1.55}</style></head>
 <body>
-<header><div><div class="eyebrow">Distributed Inference Gateway</div><h1>Evaluation Console</h1><p>Runtime telemetry · request lab · worker resilience</p></div><div class="topline"><span class="dot" id="liveDot"></span><span id="connection">Connecting to gateway…</span><span class="muted" id="updated"></span></div></header>
+<header><div><div class="eyebrow">Distributed Speculative Decoder Inference &amp; Semantic Routing Gateway</div><h1>Inference Control Center</h1><p>Runtime telemetry · request lab · worker resilience</p></div><div class="topline"><span class="dot" id="liveDot"></span><span id="connection">Connecting to gateway…</span><span class="muted" id="updated"></span></div></header>
 <main>
 <nav class="tabs"><button class="tab active" data-tab="overview">Overview</button><button class="tab" data-tab="requests">Request lab</button><button class="tab" data-tab="workers">Workers & resilience</button><button class="tab" data-tab="history">Recent requests</button></nav>
 <section id="overview">
@@ -29,11 +29,12 @@ input,select,textarea{width:100%;background:#0d1526;border:1px solid var(--line)
 <div class="metric"><div class="label">Gateway latency · p50</div><div class="value" id="p50">—</div><small>Recent completed requests</small></div>
 <div class="metric"><div class="label">Gateway latency · p95</div><div class="value" id="p95">—</div><small>Recent completed requests</small></div>
 <div class="metric"><div class="label">Gateway latency · p99</div><div class="value" id="p99">—</div><small>Recent completed requests</small></div>
-<div class="metric"><div class="label">First response body · p50</div><div class="value" id="firstBody">—</div><small>Gateway ASGI boundary, not client TTFT</small></div>
+<div class="metric"><div class="label">Gateway first body · p50</div><div class="value" id="firstBody">—</div><small>Gateway-observed first response body</small></div><div class="metric"><div class="label">Healthy workers</div><div class="value" id="healthyWorkers">—</div><small id="workerCountLabel">Registered fleet</small></div><div class="metric"><div class="label">Failover success rate</div><div class="value" id="failoverRate">—</div><small>Resolved retry attempts only</small></div>
 </div>
+<div class="split section"><div class="panel"><h2>Local vLLM · model telemetry</h2><div id="localModelMetrics" class="muted">Reading local vLLM metrics…</div><p class="footer">TTFT, TPOT and ITL are sourced from vLLM process-level histogram aggregates. Speculative acceptance is accepted draft tokens divided by draft tokens.</p></div><div class="panel"><h2>Cloud workers · separate telemetry</h2><div id="cloudModelMetrics" class="muted">Waiting for cloud requests…</div><p class="footer">Cloud gateway latency is shown independently. Token timings are not inferred from SSE chunks.</p></div></div>
 <div class="split section">
 <div class="panel"><h2>Worker fleet</h2><div id="workerSummary" class="muted">Waiting for worker telemetry…</div></div>
-<div class="panel"><h2>Measurement contract</h2><p>Gateway latency is measured from request entry to the final ASGI response body. First response body is the first non-empty body emitted by the gateway.</p><p>These are not client-observed network timings. SSE frames/events are not tokens; TPOT, ITL and token jitter are intentionally not fabricated.</p><p class="footer">Sample capacity: <span id="capacity">—</span> · Process uptime: <span id="uptime">—</span></p></div>
+<div class="panel"><h2>Measurement contract</h2><p>Gateway latency is measured from request entry to the final ASGI response body. First response body is the first non-empty body emitted by the gateway.</p><p>These are not client-observed network timings. Local token metrics above come from vLLM /metrics; browser SSE events are not tokens, so event gaps are not presented as TPOT or ITL.</p><p class="footer">Sample capacity: <span id="capacity">—</span> · Process uptime: <span id="uptime">—</span></p></div>
 </div>
 <div class="panel section"><h2>Recent gateway latency trend</h2><svg id="latencyChart" viewBox="0 0 900 150" width="100%" role="img" aria-label="Recent gateway latency trend"><path d="M 0 130 H 900" stroke="#273550" fill="none"/><text x="12" y="24" fill="#91a0ba" font-size="12">Waiting for requests…</text></svg></div>
 </section>
@@ -57,13 +58,13 @@ input,select,textarea{width:100%;background:#0d1526;border:1px solid var(--line)
 </div></section>
 <section id="workers" class="hidden">
 <div class="split">
-<div class="panel"><h2>Registered workers</h2><div id="workersDetailed">Loading…</div></div>
-<div class="panel"><h2>Mock-only fault injection</h2><p>Fault controls are disabled by default. Enable <code>DASHBOARD_FAULT_INJECTION_ENABLED=true</code> and configure at least one mock worker. Real vLLM/OpenRouter workers are never targetable.</p>
+<div class="panel"><h2>Registered workers</h2><div id="workersDetailed">Loading…</div><div class="section"><h2>Add mock worker</h2><p>Creates an in-process simulator for routing and resilience tests, not a VM or Kubernetes pod.</p><div class="formgrid"><div><label class="muted">Worker ID</label><input id="newMockId" value="mock-extra-1"></div><div><label class="muted">Latency ms</label><input id="newMockLatency" type="number" min="0" max="10000" value="25"></div><div><label class="muted">Routing weight</label><input id="newMockCapacity" type="number" min="1" max="64" value="4"></div></div><div class="actions"><button id="addMockWorker" class="primary">Add mock worker</button></div><p id="workerActionStatus" class="footer"></p></div></div>
+<div class="panel"><h2>Worker health &amp; fault injection</h2><p>Enable or drain registered workers from scheduling. Real process lifecycle remains managed by its runtime; fault injection remains mock-only.</p><p>Fault controls are disabled by default. Enable <code>DASHBOARD_FAULT_INJECTION_ENABLED=true</code> and configure at least one mock worker. Real vLLM/OpenRouter workers are never targetable.</p>
 <div id="faultControls" class="section muted">Checking fault-injection capability…</div>
 <div class="notice section">Only use this on a development instance. Fault actions require explicit confirmation and are restricted to provider=mock.</div>
 </div></div>
 </section>
-<section id="history" class="hidden"><div class="panel"><h2>Recent gateway requests</h2><p>Most recent 100 requests retained in memory. Restarting the process clears this history.</p><div class="scroll section"><table><thead><tr><th>Time</th><th>Status</th><th>Worker</th><th>Mode</th><th>Gateway ms</th><th>First body ms</th><th>Frames</th><th>Bytes</th></tr></thead><tbody id="recentRows"><tr><td colspan="8">Loading…</td></tr></tbody></table></div></div></section>
+<section id="history" class="hidden"><div class="panel"><h2>Recent gateway requests</h2><p>Most recent 100 requests retained in memory. Restarting the process clears this history.</p><div class="scroll section"><table><thead><tr><th>Time</th><th>Status</th><th>Category</th><th>Worker</th><th>Route decision</th><th>Mode</th><th>Gateway ms</th><th>First body ms</th><th>Frames</th><th>Bytes</th></tr></thead><tbody id="recentRows"><tr><td colspan="8">Loading…</td></tr></tbody></table></div></div></section>
 <p class="footer">Telemetry is process-local and bounded. It is not a durable monitoring backend. Use Prometheus/OpenTelemetry when operating multiple gateway replicas.</p>
 </main>
 <script>
@@ -76,17 +77,34 @@ function median(a){if(!a.length)return null;const x=[...a].sort((p,q)=>p-q);retu
 async function get(url){const r=await fetch(url);if(!r.ok)throw Error(url+" returned "+r.status);return r.json()}
 async function refresh(){
  try{
-  const [m,w,r]=await Promise.all([get("/api/metrics/overview"),get("/api/metrics/workers"),get("/api/metrics/recent?limit=100")]);
+  const [m,w,r,v]=await Promise.all([get("/api/metrics/overview"),get("/api/metrics/workers"),get("/api/metrics/recent?limit=100"),get("/api/metrics/vllm")]);
   $("liveDot").style.background="var(--green)";$("connection").textContent="Gateway connected";$("updated").textContent="Updated "+new Date().toLocaleTimeString();
   $("total").textContent=m.requests_total;$("rps").textContent=m.average_requests_per_second.toFixed(2);$("active").textContent=m.active_requests;$("errors").textContent=pct(m.error_rate);$("errorCount").textContent=m.requests_failed+" failed requests";
-  $("failovers").textContent=m.failovers_total;$("p50").textContent=ms(m.gateway_duration_ms.p50);$("p95").textContent=ms(m.gateway_duration_ms.p95);$("p99").textContent=ms(m.gateway_duration_ms.p99);$("firstBody").textContent=ms(m.gateway_first_body_ms.p50);
+  $("failovers").textContent=m.failovers_total;$("failoverRate").textContent=m.failover_success_rate==null?"—":pct(m.failover_success_rate);$("p50").textContent=ms(m.gateway_duration_ms.p50);$("p95").textContent=ms(m.gateway_duration_ms.p95);$("p99").textContent=ms(m.gateway_duration_ms.p99);$("firstBody").textContent=ms(m.gateway_first_body_ms.p50);
   $("retained").textContent=m.samples_retained+" / "+m.sample_capacity+" recent samples";$("capacity").textContent=m.sample_capacity;$("uptime").textContent=m.uptime_seconds+" s";
-  lastWorkers=w.workers||[];renderWorkers(lastWorkers,m.worker_distribution_retained||{});renderRecent(r.requests||[]);renderLatency(r.requests||[]);
+  lastWorkers=w.workers||[];renderWorkers(lastWorkers,m.worker_distribution_retained||{});renderRecent(r.requests||[]);renderLatency(r.requests||[]);renderModelMetrics(m,v);
  }catch(e){$("liveDot").style.background="var(--red)";$("connection").textContent="Gateway unavailable";$("updated").textContent=e.message}
 }
 function renderWorkers(workers,distribution={}){
- const html=workers.length?workers.map(w=>'<div class="worker"><div><b>'+esc(w.worker_id)+'</b><div class="muted">'+esc(w.provider)+' · '+esc(w.model)+'</div><div class="muted">In-flight '+w.in_flight+' / routing weight '+w.max_concurrency+'</div><div class="bar"><span style="width:'+Math.min(100,100*w.in_flight/Math.max(1,w.max_concurrency))+'%"></span></div></div><span class="status '+esc(w.state)+'">'+esc(w.state)+'</span></div>').join(""):"No workers registered";
- $("workerSummary").innerHTML=html+"<p class='footer'>Recent request distribution: "+Object.entries(distribution).map(([id,n])=>esc(id)+": "+n).join(" · ")+"</p>";$("workersDetailed").innerHTML=html;
+ const html=workers.length?workers.map(w=>"<div class='worker'><div><b>"+esc(w.worker_id)+"</b><div class='muted'>"+esc(w.provider)+" · "+esc(w.model)+"</div><div class='muted'>In-flight "+w.in_flight+" / weight "+w.max_concurrency+" · routes "+esc((w.routing_categories||["*"]).join(", "))+"</div><div class='muted'>"+esc(w.last_error||w.last_checked_at||"Health check pending")+"</div><div class='bar'><span style='width:"+Math.min(100,100*w.in_flight/Math.max(1,w.max_concurrency))+"%'></span></div><div class='actions'><button data-toggle='"+esc(w.worker_id)+"' data-enabled='"+(!w.available)+"'>"+(w.available?"Disable / drain":"Enable")+"</button>"+(w.provider==="mock"?" <button class='danger' data-remove='"+esc(w.worker_id)+"'>Remove</button>":"")+"</div></div><span class='status "+esc(w.state)+"'>"+esc(w.state)+(w.available?" · enabled":" · disabled")+"</span></div>").join(""):"No workers registered";
+ $("workerSummary").innerHTML=html+"<p class='footer'>Recent request distribution: "+Object.entries(distribution).map(([id,n])=>esc(id)+": "+n).join(" · ")+"</p>";
+ $("workersDetailed").innerHTML=html;
+ document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{const id=b.dataset.toggle,available=b.dataset.enabled==="true";const r=await fetch("/api/workers/"+encodeURIComponent(id)+"/availability",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({available})});const d=await r.json();$("workerActionStatus").textContent=r.ok?id+" updated":(d.detail||"Update failed");refresh()});
+ document.querySelectorAll("[data-remove]").forEach(b=>b.onclick=async()=>{const id=b.dataset.remove;if(!confirm("Remove mock worker "+id+"?"))return;const r=await fetch("/api/workers/"+encodeURIComponent(id),{method:"DELETE"});const d=await r.json();$("workerActionStatus").textContent=r.ok?id+" removed":(d.detail||"Remove failed");refresh()});
+}
+function renderModelMetrics(m,v){
+ const healthy=lastWorkers.filter(w=>w.state==="healthy"&&w.available).length;
+ $("healthyWorkers").textContent=healthy+" / "+lastWorkers.length;
+ $("workerCountLabel").textContent=lastWorkers.length+" registered · "+lastWorkers.filter(w=>!w.available||w.state==="unhealthy").length+" disabled/unhealthy";
+ const local=Object.entries(m.worker_metrics||{}).filter(([id,x])=>x.provider==="vllm");
+ const cloud=Object.entries(m.worker_metrics||{}).filter(([id,x])=>x.provider==="openrouter");
+ if(v.available){
+  const s=v.speculative_decoding||{},t=v.token_latency_metrics||{},q=v.histogram_quantiles_ms||{},p=v.launch_profile||{};
+  const mean=(sum,count)=>sum!=null&&count>0?sum/count*1000:null;
+  const localSummary=local.length?local[0][1]:null;
+  $("localModelMetrics").innerHTML="<b>"+esc(v.model)+"</b><p class='muted'>Target "+esc(p.target_model||v.model)+" · Draft "+esc(p.draft_model||"—")+" · "+esc(p.dtype||"—")+" · max len "+esc(p.max_model_len??"—")+" · max seq "+esc(p.max_num_seqs??"—")+" · KV "+esc(p.kv_cache_memory_mib??"—")+" MiB · GPU mem "+esc(p.gpu_memory_utilization??"—")+" · speculative tokens "+esc(p.num_speculative_tokens??"—")+" · eager "+esc(p.enforce_eager??"—")+"</p>"+(localSummary?"<p class='muted'>Gateway requests "+localSummary.requests+" · p50 "+ms(localSummary.gateway_latency_ms.p50)+" · p95 "+ms(localSummary.gateway_latency_ms.p95)+"</p>":"")+"<div class='grid section'><div class='metric'><div class='label'>Speculative acceptance</div><div class='value'>"+(s.acceptance_rate==null?"—":(s.acceptance_rate*100).toFixed(1)+"%")+"</div><small>"+(s.accepted_tokens_total??"—")+" accepted / "+(s.draft_tokens_total??"—")+" draft tokens</small></div><div class='metric'><div class='label'>Mean TTFT</div><div class='value'>"+ms(mean(t["vllm:time_to_first_token_seconds_sum"],t["vllm:time_to_first_token_seconds_count"]))+"</div><small>p50 "+ms(q.ttft?.p50)+" · p95 "+ms(q.ttft?.p95)+"</small></div><div class='metric'><div class='label'>Mean TPOT</div><div class='value'>"+ms(mean(t["vllm:time_per_output_token_seconds_sum"],t["vllm:time_per_output_token_seconds_count"]))+"</div><small>p50 "+ms(q.tpot?.p50)+" · p95 "+ms(q.tpot?.p95)+"</small></div><div class='metric'><div class='label'>Mean inter-token latency</div><div class='value'>"+ms(mean(t["vllm:inter_token_latency_seconds_sum"],t["vllm:inter_token_latency_seconds_count"]))+"</div><small>p50 "+ms(q.inter_token_latency?.p50)+" · p95 "+ms(q.inter_token_latency?.p95)+"</small></div><div class='metric'><div class='label'>ITL jitter proxy</div><div class='value'>"+ms(v.inter_token_jitter_ms)+"</div><small>ITL p95 − p50; not per-token standard deviation</small></div></div><p class='footer'>Live scrape from local vLLM /metrics. Missing values are unavailable, not zero.</p>";
+ }else{$("localModelMetrics").textContent=v.reason||"Local vLLM metrics unavailable."}
+ $("cloudModelMetrics").innerHTML=cloud.length?cloud.map(([id,x])=>"<div class='worker'><div><b>"+esc(id)+"</b><div class='muted'>"+esc(x.model)+"</div><div class='muted'>Requests "+x.requests+" · errors "+x.errors+"</div><div class='muted'>Gateway p50 "+ms(x.gateway_latency_ms.p50)+" · p95 "+ms(x.gateway_latency_ms.p95)+"</div></div><span class='status'>Cloud</span></div>").join(""):"No cloud requests in retained sample window.";
 }
 function renderLatency(rows){
  const values=rows.filter(x=>Number.isFinite(Number(x.gateway_duration_ms))).slice(-60).map(x=>Number(x.gateway_duration_ms));
@@ -97,8 +115,12 @@ function renderLatency(rows){
  svg.innerHTML='<path d="M 0 130 H 900" stroke="#273550" fill="none"/><polyline points="'+pts+'" fill="none" stroke="#79a8ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15" fill="#91a0ba" font-size="11">Max recent sample: '+max.toFixed(1)+' ms</text>';
 }
 function renderRecent(rows){
- $("recentRows").innerHTML=rows.slice().reverse().map(x=>'<tr><td>'+new Date(x.timestamp).toLocaleTimeString()+'</td><td>'+x.status_code+'</td><td>'+esc(x.worker_id||"—")+'</td><td>'+(x.streaming?"SSE":"JSON")+'</td><td>'+ms(x.gateway_duration_ms)+'</td><td>'+ms(x.gateway_first_body_ms)+'</td><td>'+x.asgi_body_frames+'</td><td>'+x.response_bytes+'</td></tr>').join("")||'<tr><td colspan="8">No requests recorded yet</td></tr>';
+ $("recentRows").innerHTML=rows.slice().reverse().map(x=>"<tr><td>"+new Date(x.timestamp).toLocaleTimeString()+"</td><td>"+x.status_code+"</td><td>"+esc(x.semantic_category||"—")+"</td><td>"+esc(x.worker_id||"—")+"</td><td>"+esc(x.routing_decision||"—")+"</td><td>"+(x.streaming?"SSE":"JSON")+"</td><td>"+ms(x.gateway_duration_ms)+"</td><td>"+ms(x.gateway_first_body_ms)+"</td><td>"+x.asgi_body_frames+"</td><td>"+x.response_bytes+"</td></tr>").join("")||"<tr><td colspan='10'>No requests recorded yet</td></tr>";
 }
+$("addMockWorker").addEventListener("click",async()=>{
+ const payload={worker_id:$("newMockId").value.trim(),latency_ms:Number($("newMockLatency").value),max_concurrency:Number($("newMockCapacity").value)};
+ const r=await fetch("/api/workers/mock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const d=await r.json();$("workerActionStatus").textContent=r.ok?d.message:(d.detail||"Could not add worker");if(r.ok){refresh();loadFaultControls()}
+});
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));["overview","requests","workers","history"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab))}));
 async function sendOne(prompt,stream){
  const started=performance.now();let firstByte=null,firstContent=null,frames=0,events=0,contentEvents=0,lastContent=null,gaps=[],status=null,worker=null,body="";

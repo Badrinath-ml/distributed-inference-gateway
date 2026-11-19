@@ -131,7 +131,8 @@ class OpenRouterWorker(BaseWorker):
             model=model,
             capabilities=DEFAULT_CAPABILITIES,
             max_concurrency=max_concurrency,
-            description="OpenRouter cloud inference worker.",
+            description="OpenRouter cloud worker for coding and complex implementation requests.",
+            routing_categories=frozenset({"coding"}),
         )
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")
