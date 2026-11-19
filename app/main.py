@@ -265,9 +265,17 @@ async def local_vllm_metrics(request: Request):
         return {"available": True, "worker_id": worker.metadata.worker_id, "model": worker.metadata.model, "launch_profile": profile,
                 "speculative_decoding": {"draft_tokens_total": draft, "accepted_tokens_total": accepted,
                     "acceptance_rate": round(accepted / draft, 4) if draft and accepted is not None else None},
-                "token_latency_metrics": {name: first_metric(name) for name in ("vllm:time_to_first_token_seconds_sum", "vllm:time_to_first_token_seconds_count", "vllm:time_per_output_token_seconds_sum", "vllm:time_per_output_token_seconds_count", "vllm:inter_token_latency_seconds_sum", "vllm:inter_token_latency_seconds_count")},
+                "token_latency_metrics": {
+                    "vllm:time_to_first_token_seconds_sum": first_metric("vllm:time_to_first_token_seconds_sum"),
+                    "vllm:time_to_first_token_seconds_count": first_metric("vllm:time_to_first_token_seconds_count"),
+                    "tpot_sum": first_metric("vllm:request_time_per_output_token_seconds_sum", "vllm:time_per_output_token_seconds_sum"),
+                    "tpot_count": first_metric("vllm:request_time_per_output_token_seconds_count", "vllm:time_per_output_token_seconds_count"),
+                    "vllm:inter_token_latency_seconds_sum": first_metric("vllm:inter_token_latency_seconds_sum"),
+                    "vllm:inter_token_latency_seconds_count": first_metric("vllm:inter_token_latency_seconds_count"),
+                },
+                "tpot_metric_name": next((name for name in ("vllm:request_time_per_output_token_seconds", "vllm:time_per_output_token_seconds") if name in buckets), None),
                 "metrics_endpoint": worker._base_url + "/metrics",
-                "histogram_quantiles_ms": {family: {"p50": histogram_quantile(metric, 0.50), "p95": histogram_quantile(metric, 0.95)} for family, metric in {"ttft": "vllm:time_to_first_token_seconds", "tpot": "vllm:time_per_output_token_seconds", "inter_token_latency": "vllm:inter_token_latency_seconds"}.items()},
+                "histogram_quantiles_ms": {family: {"p50": histogram_quantile(metric, 0.50), "p95": histogram_quantile(metric, 0.95)} for family, metric in {"ttft": "vllm:time_to_first_token_seconds", "tpot": next((name for name in ("vllm:request_time_per_output_token_seconds", "vllm:time_per_output_token_seconds") if name in buckets), "vllm:request_time_per_output_token_seconds"), "inter_token_latency": "vllm:inter_token_latency_seconds"}.items()},
                 "inter_token_jitter_ms": (lambda p50, p95: round(p95 - p50, 3) if p50 is not None and p95 is not None else None)(histogram_quantile("vllm:inter_token_latency_seconds", 0.50), histogram_quantile("vllm:inter_token_latency_seconds", 0.95)),
                 "note": "Means and histogram quantiles are process-wide vLLM metrics, not per-request samples. Quantiles are approximate bucket interpolations; ITL spread (p95-p50) is a jitter proxy, not per-token standard deviation."}
     except Exception as exc:
