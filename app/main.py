@@ -241,7 +241,18 @@ async def local_vllm_metrics(request: Request):
             return None
         draft = first_metric("vllm:spec_decode_num_draft_tokens_total", "vllm_spec_decode_num_draft_tokens_total")
         accepted = first_metric("vllm:spec_decode_num_accepted_tokens_total", "vllm_spec_decode_num_accepted_tokens_total")
-        return {"available": True, "worker_id": worker.metadata.worker_id, "model": worker.metadata.model,
+        profile = {"target_model": worker.metadata.model, "draft_model": "Qwen/Qwen3-0.6B", "dtype": "half", "max_model_len": 1024, "max_num_seqs": 2, "kv_cache_memory_mib": 512, "num_speculative_tokens": 2}
+        profile_path = Path(__file__).resolve().parent.parent / "scripts" / "worker1.env"
+        if profile_path.exists():
+            profile_text = profile_path.read_text(encoding="utf-8")
+            for key, field in (("VLLM_DRAFT_MODEL", "draft_model"), ("VLLM_DTYPE", "dtype"), ("VLLM_MAX_MODEL_LEN", "max_model_len"), ("VLLM_MAX_NUM_SEQS", "max_num_seqs"), ("VLLM_KV_CACHE_MEMORY_BYTES", "kv_cache_memory_bytes"), ("VLLM_NUM_SPECULATIVE_TOKENS", "num_speculative_tokens")):
+                match = re.search(rf'export {key}="\\$\\{{{key}:-([^}}]+)\\}}"', profile_text)
+                if match:
+                    raw_value = match.group(1)
+                    profile[field] = int(raw_value) if raw_value.isdigit() else raw_value
+        if "kv_cache_memory_bytes" in profile:
+            profile["kv_cache_memory_mib"] = round(profile.pop("kv_cache_memory_bytes") / (1024 * 1024), 1)
+        return {"available": True, "worker_id": worker.metadata.worker_id, "model": worker.metadata.model, "launch_profile": profile,
                 "speculative_decoding": {"draft_tokens_total": draft, "accepted_tokens_total": accepted,
                     "acceptance_rate": round(accepted / draft, 4) if draft and accepted is not None else None},
                 "token_latency_metrics": {name: first_metric(name) for name in ("vllm:time_to_first_token_seconds_sum", "vllm:time_to_first_token_seconds_count", "vllm:time_per_output_token_seconds_sum", "vllm:time_per_output_token_seconds_count", "vllm:inter_token_latency_seconds_sum", "vllm:inter_token_latency_seconds_count")},
