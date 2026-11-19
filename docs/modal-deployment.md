@@ -20,7 +20,7 @@ compatible vLLM worker interface.
 | KV cache | 512 MiB |
 | GPU memory utilization | 0.80 |
 | Initial startup mode | eager |
-| Autoscaling | serverless, scale down after 5 idle minutes |
+| Autoscaling | one maximum GPU container; scale down after 5 idle minutes |
 | Endpoint access | private; Modal Proxy Token required |
 
 The profile deliberately preserves the locally benchmarked model, draft model,
@@ -110,8 +110,9 @@ GPU-second (about $1.10 per GPU-hour), before CPU, memory, network and other
 applicable charges. At that GPU-only rate, $30 corresponds to about 27.2 GPU
 hours; actual usage will be lower after accounting for the other resources.
 
-This server scales down after five idle minutes, but each active container is
-billable while running. Avoid leaving test traffic or a warm server running
+The initial configuration caps the deployment at one GPU container and two
+concurrent requests. It scales down after five idle minutes, but the active
+container is billable while running. Avoid leaving test traffic or a warm server running
 unnecessarily. Monitor the Modal Usage/Billing page before and after each
 benchmark. Set any available spend controls in your workspace. The first model
 download and persistent volumes also consume storage/network resources.
