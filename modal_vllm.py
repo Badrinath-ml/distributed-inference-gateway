@@ -112,6 +112,9 @@ class QwenVLLMServer:
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=10)
+        # Persist downloaded model weights and compiled artifacts for later starts.
+        hf_cache.commit()
+        vllm_cache.commit()
 
 
 @app.local_entrypoint()
