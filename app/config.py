@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     vllm_base_url: str
     vllm_model: str
     vllm_enable_thinking: bool = False
+    vllm_api_key: str | None = None
     worker1_enabled: bool = True
     worker1_id: str = "worker1-local-vllm"
     worker1_timeout_seconds: float = Field(default=120.0, gt=0)
