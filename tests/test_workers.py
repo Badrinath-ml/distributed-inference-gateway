@@ -98,6 +98,32 @@ class LocalVLLMWorkerTestCase(unittest.IsolatedAsyncioTestCase):
         )
         self.assertTrue(await self.worker.health_check())
 
+    async def test_optional_modal_proxy_token_is_sent_as_bearer(self) -> None:
+        seen = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen["authorization"] = request.headers.get("authorization")
+            return httpx.Response(200, json=completion_body())
+
+        worker = LocalVLLMWorker(
+            worker_id="modal-test",
+            base_url="http://modal-test",
+            model="Qwen/Qwen3-1.7B",
+            api_key="wk-test-id.ws-test-secret",
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            await worker.chat_completion(
+                {"messages": [{"role": "user", "content": "hello"}]}
+            )
+        finally:
+            await worker.aclose()
+
+        self.assertEqual(
+            seen["authorization"],
+            "Bearer wk-test-id.ws-test-secret",
+        )
+
     async def test_non_streaming_overrides_model_and_validates_choices(self) -> None:
         body = await self.worker.chat_completion(
             {
