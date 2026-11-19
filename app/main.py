@@ -52,6 +52,9 @@ def build_workers() -> list[BaseWorker]:
                 health_timeout_seconds=settings.health_check_timeout_seconds,
                 enable_thinking=settings.vllm_enable_thinking,
                 api_key=settings.vllm_api_key,
+                health_check_enabled=settings.worker1_health_check_enabled,
+                cold_start_retries=settings.worker1_cold_start_retries,
+                cold_start_retry_delay_seconds=settings.worker1_cold_start_retry_delay_seconds,
             )
         )
 
