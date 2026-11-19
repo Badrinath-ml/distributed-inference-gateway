@@ -8,6 +8,8 @@ from contextlib import asynccontextmanager
 
 import torch
 from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body
+import re
 
 from app.config import settings
 from app.services.embeddings import EmbeddingExecutor
@@ -157,13 +159,120 @@ async def dashboard():
 
 
 @app.get("/api/metrics/overview")
-async def metrics_overview():
-    return metrics.snapshot()
+async def metrics_overview(request: Request):
+    snapshot = metrics.snapshot()
+    workers = {item["worker_id"]: item for item in request.app.state.worker_registry.snapshot()}
+    grouped: dict[str, list[dict]] = {}
+    for sample in metrics.recent(200):
+        worker_id = sample.get("worker_id") or "unassigned"
+        grouped.setdefault(worker_id, []).append(sample)
+    def summarize(rows):
+        durations = [float(row["gateway_duration_ms"]) for row in rows]
+        first = [float(row["gateway_first_body_ms"]) for row in rows if row.get("gateway_first_body_ms") is not None]
+        return {"requests": len(rows), "errors": sum(int(row.get("status_code") or 500) >= 400 or row.get("completed") is False for row in rows),
+                "gateway_latency_ms": {"p50": _percentile_api(durations, .50), "p95": _percentile_api(durations, .95), "p99": _percentile_api(durations, .99)},
+                "first_body_ms": {"p50": _percentile_api(first, .50), "p95": _percentile_api(first, .95)}}
+    snapshot["worker_metrics"] = {worker_id: {**summarize(rows), "provider": workers.get(worker_id, {}).get("provider", "unknown"), "model": workers.get(worker_id, {}).get("model", "unknown")} for worker_id, rows in grouped.items()}
+    provider_groups: dict[str, list[dict]] = {}
+    for worker_id, rows in grouped.items():
+        provider = workers.get(worker_id, {}).get("provider", "unknown")
+        provider_groups.setdefault(provider, []).extend(rows)
+    snapshot["provider_metrics"] = {provider: summarize(rows) for provider, rows in provider_groups.items()}
+    return snapshot
+
+
+def _percentile_api(values: list[float], fraction: float):
+    if not values:
+        return None
+    ordered = sorted(values)
+    pos = (len(ordered) - 1) * fraction
+    lo = int(pos); hi = min(lo + 1, len(ordered) - 1); weight = pos - lo
+    return round(ordered[lo] * (1 - weight) + ordered[hi] * weight, 3)
+
+
+@app.get("/api/metrics/vllm")
+async def local_vllm_metrics(request: Request):
+    local = [worker for worker in request.app.state.worker_registry.workers() if isinstance(worker, LocalVLLMWorker)]
+    if not local:
+        return {"available": False, "reason": "No local vLLM worker is registered."}
+    worker = local[0]
+    try:
+        raw = await worker.metrics_text()
+        values: dict[str, float] = {}
+        for line in raw.splitlines():
+            if not line or line.startswith("#"):
+                continue
+            match = re.match(r"^([^\\s{]+)(?:\\{[^}]*\\})?\\s+([-+0-9.eE]+)$", line)
+            if match:
+                values[match.group(1)] = float(match.group(2))
+        def first_metric(*names):
+            for name in names:
+                if name in values:
+                    return values[name]
+            return None
+        draft = first_metric("vllm:spec_decode_num_draft_tokens_total", "vllm_spec_decode_num_draft_tokens_total")
+        accepted = first_metric("vllm:spec_decode_num_accepted_tokens_total", "vllm_spec_decode_num_accepted_tokens_total")
+        return {"available": True, "worker_id": worker.metadata.worker_id, "model": worker.metadata.model,
+                "speculative_decoding": {"draft_tokens_total": draft, "accepted_tokens_total": accepted,
+                    "acceptance_rate": round(accepted / draft, 4) if draft and accepted is not None else None},
+                "token_latency_metrics": {name: first_metric(name) for name in ("vllm:time_to_first_token_seconds_sum", "vllm:time_to_first_token_seconds_count", "vllm:time_per_output_token_seconds_sum", "vllm:time_per_output_token_seconds_count", "vllm:inter_token_latency_seconds_sum", "vllm:inter_token_latency_seconds_count")},
+                "metrics_endpoint": worker._base_url + "/metrics",
+                "note": "Counters and histogram aggregates are process-wide vLLM metrics, not per-request samples. Histogram quantiles are not estimated here."}
+    except Exception as exc:
+        return {"available": False, "worker_id": worker.metadata.worker_id, "reason": f"vLLM metrics endpoint unavailable: {type(exc).__name__}"}
 
 
 @app.get("/api/metrics/workers")
 async def metrics_workers(request: Request):
     return {"workers": request.app.state.worker_registry.snapshot()}
+
+
+@app.put("/api/workers/{worker_id}/availability")
+async def set_worker_availability(worker_id: str, payload: dict = Body(...), request: Request = None):
+    available = payload.get("available")
+    if not isinstance(available, bool):
+        raise HTTPException(status_code=400, detail="'available' must be a boolean.")
+    try:
+        record = request.app.state.worker_registry.set_available(worker_id, available)
+        if isinstance(record.worker, MockWorker):
+            record.worker.set_available(available)
+        return {"worker_id": worker_id, "available": available, "state": record.state.value}
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Worker not found.")
+
+
+@app.post("/api/workers/mock")
+async def add_mock_worker(payload: dict, request: Request):
+    worker_id = str(payload.get("worker_id", "")).strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{1,63}", worker_id):
+        raise HTTPException(status_code=400, detail="worker_id must be 2-64 safe characters.")
+    latency_ms = float(payload.get("latency_ms", 25))
+    concurrency = int(payload.get("max_concurrency", 4))
+    if not 0 <= latency_ms <= 10000 or not 1 <= concurrency <= 64:
+        raise HTTPException(status_code=400, detail="Invalid latency or max_concurrency.")
+    worker = MockWorker(worker_id=worker_id, model="mock-simulator", latency_ms=latency_ms, max_concurrency=concurrency)
+    try:
+        record = request.app.state.worker_registry.register(worker)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    request.app.state.health_monitor  # health is explicitly marked healthy for a newly-created deterministic mock
+    request.app.state.worker_registry.mark_health(worker_id, True)
+    return {"worker": request.app.state.worker_registry.require(worker_id).as_dict(), "message": "Mock worker added."}
+
+
+@app.delete("/api/workers/{worker_id}")
+async def remove_mock_worker(worker_id: str, request: Request):
+    try:
+        record = request.app.state.worker_registry.require(worker_id)
+        if not isinstance(record.worker, MockWorker):
+            raise HTTPException(status_code=403, detail="Only dashboard-created mock workers can be removed.")
+        worker = request.app.state.worker_registry.unregister(worker_id)
+        await worker.aclose()
+        return {"worker_id": worker_id, "removed": True}
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Worker not found.")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
 
 
 @app.get("/api/metrics/recent")
