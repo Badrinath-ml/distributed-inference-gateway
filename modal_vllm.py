@@ -123,5 +123,5 @@ def show_configuration() -> None:
     print(f"App: {APP_NAME}")
     print(f"Target: {TARGET_MODEL}")
     print(f"Draft: {DRAFT_MODEL}")
-    print("GPU: A10G | max sequences: 2 | speculative tokens: 2")
+    print("GPU: A10 | max sequences: 2 | speculative tokens: 2")
     print("Endpoint authentication: Modal Proxy Token (private by default)")
