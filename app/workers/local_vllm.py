@@ -155,6 +155,12 @@ class LocalVLLMWorker(BaseWorker):
     def _request_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
         request_payload = payload.copy()
         request_payload["model"] = self._metadata.model
+        # Qwen3 chat templates emit an explicit <think> channel by default.
+        # Disable it for user-facing completions unless an operator opts in.
+        if self._metadata.model.lower().startswith("qwen3") or "qwen3-" in self._metadata.model.lower():
+            template_kwargs = dict(request_payload.get("chat_template_kwargs") or {})
+            template_kwargs["enable_thinking"] = False
+            request_payload["chat_template_kwargs"] = template_kwargs
         return request_payload
 
     async def health_check(self) -> bool:
