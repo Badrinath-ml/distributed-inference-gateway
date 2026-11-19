@@ -147,7 +147,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Distributed Inference Gateway",
+    title="Distributed Speculative Decoder Inference and Semantic Routing Gateway",
     lifespan=lifespan,
 )
 app.add_middleware(MetricsMiddleware, store=metrics)
