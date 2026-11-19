@@ -121,7 +121,7 @@ vllm:inter_token_latency_seconds_bucket{le="+Inf"} 10
             response = await self.client.get("/api/metrics/vllm")
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertTrue(data["available"])
+        self.assertTrue(data["available"], data)
         self.assertEqual(data["speculative_decoding"]["acceptance_rate"], 0.6)
         self.assertEqual(data["launch_profile"]["draft_model"], "Qwen/Qwen3-0.6B")
         self.assertEqual(data["launch_profile"]["kv_cache_memory_mib"], 512)
