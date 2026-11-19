@@ -16,7 +16,7 @@ class FakeSemanticRouter:
     def route(self, prompt: str):
         return {
             "category": "coding",
-            "scores": {"coding": 0.1, "reasoning": 0.2, "general": 0.8},
+            "scores": {"coding": 0.8, "reasoning": 0.2, "general": 0.1},
             "top_score": 0.8,
             "margin": 0.6,
         }
@@ -77,6 +77,7 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(response.headers.get("x-request-id"))
         self.assertEqual(response.headers.get("x-semantic-category"), "coding")
         self.assertEqual(response.headers.get("x-worker-id"), "dashboard-mock")
+        self.assertEqual(response.headers.get("x-routing-decision"), "load-health-fallback")
 
         overview = await self.client.get("/api/metrics/overview")
         self.assertEqual(overview.status_code, 200)
