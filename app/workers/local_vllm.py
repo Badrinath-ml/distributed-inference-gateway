@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -118,6 +119,9 @@ class LocalVLLMWorker(BaseWorker):
         health_timeout_seconds: float = 3.0,
         enable_thinking: bool = False,
         api_key: str | None = None,
+        health_check_enabled: bool = True,
+        cold_start_retries: int = 0,
+        cold_start_retry_delay_seconds: float = 2.0,
         transport: httpx.AsyncBaseTransport | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
@@ -134,6 +138,9 @@ class LocalVLLMWorker(BaseWorker):
         self._timeout_seconds = timeout_seconds
         self._enable_thinking = enable_thinking
         self._api_key = api_key
+        self._health_check_enabled = health_check_enabled
+        self._cold_start_retries = max(0, cold_start_retries)
+        self._cold_start_retry_delay_seconds = max(0.0, cold_start_retry_delay_seconds)
         self._health_timeout_seconds = health_timeout_seconds
         self._owns_client = client is None
         # Streaming reads have no read timeout: generation may legitimately
@@ -170,6 +177,10 @@ class LocalVLLMWorker(BaseWorker):
         return request_payload
 
     async def health_check(self) -> bool:
+        # Modal scales idle servers to zero. A periodic HTTP health probe would
+        # keep the GPU container warm and defeat scale-to-zero billing.
+        if not self._health_check_enabled:
+            return True
         try:
             response = await self._client.get(
                 f"{self._base_url}/health",
@@ -189,15 +200,28 @@ class LocalVLLMWorker(BaseWorker):
             return False
 
     async def chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            response = await self._client.post(
-                self.chat_url,
-                json=self._request_payload(payload),
-                timeout=self._timeout_seconds,
-            )
-        except Exception as exc:
-            raise _translate_transport_error(exc, self._metadata.worker_id) from exc
+        response = None
+        for attempt in range(self._cold_start_retries + 1):
+            try:
+                response = await self._client.post(
+                    self.chat_url,
+                    json=self._request_payload(payload),
+                    timeout=self._timeout_seconds,
+                )
+            except Exception as exc:
+                raise _translate_transport_error(exc, self._metadata.worker_id) from exc
+            # Modal Servers return 503 while a scaled-to-zero container starts.
+            # This opt-in retry is safe for this known pre-container response.
+            if response.status_code != 503 or attempt >= self._cold_start_retries:
+                break
+            await response.aclose()
+            await asyncio.sleep(self._cold_start_retry_delay_seconds)
 
+        if response is None:
+            raise WorkerResponseError(
+                f"worker {self._metadata.worker_id} returned no response",
+                worker_id=self._metadata.worker_id,
+            )
         if response.status_code >= 400:
             raise _error_for_status(response, self._metadata.worker_id)
 
@@ -211,16 +235,28 @@ class LocalVLLMWorker(BaseWorker):
         return _validate_completion(body, self._metadata.worker_id)
 
     async def open_stream(self, payload: dict[str, Any]) -> WorkerStream:
-        request = self._client.build_request(
-            "POST",
-            self.chat_url,
-            json=self._request_payload(payload),
-        )
-        try:
-            upstream = await self._client.send(request, stream=True)
-        except Exception as exc:
-            raise _translate_transport_error(exc, self._metadata.worker_id) from exc
+        upstream = None
+        for attempt in range(self._cold_start_retries + 1):
+            request = self._client.build_request(
+                "POST",
+                self.chat_url,
+                json=self._request_payload(payload),
+            )
+            try:
+                upstream = await self._client.send(request, stream=True)
+            except Exception as exc:
+                raise _translate_transport_error(exc, self._metadata.worker_id) from exc
+            if upstream.status_code != 503 or attempt >= self._cold_start_retries:
+                break
+            await upstream.aread()
+            await upstream.aclose()
+            await asyncio.sleep(self._cold_start_retry_delay_seconds)
 
+        if upstream is None:
+            raise WorkerResponseError(
+                f"worker {self._metadata.worker_id} returned no response",
+                worker_id=self._metadata.worker_id,
+            )
         if upstream.status_code >= 400:
             try:
                 await upstream.aread()
