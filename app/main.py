@@ -248,7 +248,7 @@ async def local_vllm_metrics(request: Request):
             for key, field in (("VLLM_DRAFT_MODEL", "draft_model"), ("VLLM_DTYPE", "dtype"), ("VLLM_MAX_MODEL_LEN", "max_model_len"), ("VLLM_MAX_NUM_SEQS", "max_num_seqs"), ("VLLM_KV_CACHE_MEMORY_BYTES", "kv_cache_memory_bytes"), ("VLLM_NUM_SPECULATIVE_TOKENS", "num_speculative_tokens")):
                 prefix = 'export ' + key + '="${' + key + ':-'
                 for line in profile_text.splitlines():
-                    if line.startswith(prefix) and line.endswith(' }"'.strip()):
+                    if line.startswith(prefix) and line.endswith('}"'):
                         raw_value = line[len(prefix):-2]
                         profile[field] = int(raw_value) if raw_value.isdigit() else raw_value
                         break
