@@ -64,7 +64,7 @@ button:hover{border-color:#5677a8;filter:brightness(1.08)}button:focus-visible,i
 <div class="notice section">Only use this on a development instance. Fault actions require explicit confirmation and are restricted to provider=mock.</div>
 </div></div>
 </section>
-<section id="history" class="hidden"><div class="panel"><h2>Recent gateway requests</h2><p>Most recent 100 requests retained in memory. Restarting the process clears this history.</p><div class="scroll section"><table><thead><tr><th>Time</th><th>Status</th><th>Category</th><th>Worker</th><th>Mode</th><th>Gateway ms</th><th>First body ms</th><th>Frames</th><th>Bytes</th></tr></thead><tbody id="recentRows"><tr><td colspan="8">Loading…</td></tr></tbody></table></div></div></section>
+<section id="history" class="hidden"><div class="panel"><h2>Recent gateway requests</h2><p>Most recent 100 requests retained in memory. Restarting the process clears this history.</p><div class="scroll section"><table><thead><tr><th>Time</th><th>Status</th><th>Category</th><th>Worker</th><th>Route decision</th><th>Mode</th><th>Gateway ms</th><th>First body ms</th><th>Frames</th><th>Bytes</th></tr></thead><tbody id="recentRows"><tr><td colspan="8">Loading…</td></tr></tbody></table></div></div></section>
 <p class="footer">Telemetry is process-local and bounded. It is not a durable monitoring backend. Use Prometheus/OpenTelemetry when operating multiple gateway replicas.</p>
 </main>
 <script>
@@ -115,7 +115,7 @@ function renderLatency(rows){
  svg.innerHTML='<path d="M 0 130 H 900" stroke="#273550" fill="none"/><polyline points="'+pts+'" fill="none" stroke="#79a8ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15" fill="#91a0ba" font-size="11">Max recent sample: '+max.toFixed(1)+' ms</text>';
 }
 function renderRecent(rows){
- $("recentRows").innerHTML=rows.slice().reverse().map(x=>"<tr><td>"+new Date(x.timestamp).toLocaleTimeString()+"</td><td>"+x.status_code+"</td><td>"+esc(x.semantic_category||"—")+"</td><td>"+esc(x.worker_id||"—")+"</td><td>"+(x.streaming?"SSE":"JSON")+"</td><td>"+ms(x.gateway_duration_ms)+"</td><td>"+ms(x.gateway_first_body_ms)+"</td><td>"+x.asgi_body_frames+"</td><td>"+x.response_bytes+"</td></tr>").join("")||"<tr><td colspan='9'>No requests recorded yet</td></tr>";
+ $("recentRows").innerHTML=rows.slice().reverse().map(x=>"<tr><td>"+new Date(x.timestamp).toLocaleTimeString()+"</td><td>"+x.status_code+"</td><td>"+esc(x.semantic_category||"—")+"</td><td>"+esc(x.worker_id||"—")+"</td><td>"+esc(x.routing_decision||"—")+"</td><td>"+(x.streaming?"SSE":"JSON")+"</td><td>"+ms(x.gateway_duration_ms)+"</td><td>"+ms(x.gateway_first_body_ms)+"</td><td>"+x.asgi_body_frames+"</td><td>"+x.response_bytes+"</td></tr>").join("")||"<tr><td colspan='10'>No requests recorded yet</td></tr>";
 }
 $("addMockWorker").addEventListener("click",async()=>{
  const payload={worker_id:$("newMockId").value.trim(),latency_ms:Number($("newMockLatency").value),max_concurrency:Number($("newMockCapacity").value)};
