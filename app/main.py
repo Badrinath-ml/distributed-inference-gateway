@@ -199,16 +199,45 @@ async def local_vllm_metrics(request: Request):
     try:
         raw = await worker.metrics_text()
         values: dict[str, float] = {}
+        buckets: dict[str, dict[float, float]] = {}
         for line in raw.splitlines():
             if not line or line.startswith("#"):
                 continue
-            match = re.match(r"^([^\s{]+)(?:\{[^}]*\})?\s+([-+0-9.eE]+)$", line)
-            if match:
-                values[match.group(1)] = values.get(match.group(1), 0.0) + float(match.group(2))
-        def first_metric(*names):
-            for name in names:
-                if name in values:
-                    return values[name]
+            match = re.match(r"^([^\s{]+)(?:\{([^}]*)\})?\s+([-+0-9.eE]+)$", line)
+            if not match:
+                continue
+            name, labels, raw_value = match.groups()
+            value = float(raw_value)
+            values[name] = values.get(name, 0.0) + value
+            if name.endswith("_bucket") and labels:
+                le = re.search(r'(?:^|,)le="([^"]+)"', labels)
+                if le:
+                    bound = float("inf") if le.group(1) == "+Inf" else float(le.group(1))
+                    family = name[:-7]
+                    family_buckets = buckets.setdefault(family, {})
+                    family_buckets[bound] = family_buckets.get(bound, 0.0) + value
+
+        def histogram_quantile(metric_name: str, quantile: float):
+            series = sorted(buckets.get(metric_name, {}).items(), key=lambda item: item[0])
+            if not series:
+                return None
+            total = series[-1][1]
+            if total <= 0:
+                return None
+            target = total * quantile
+            previous_bound = 0.0
+            previous_count = 0.0
+            for upper_bound, cumulative in series:
+                if cumulative >= target:
+                    if upper_bound == float("inf"):
+                        estimate = previous_bound
+                    elif cumulative <= previous_count:
+                        estimate = upper_bound
+                    else:
+                        fraction = (target - previous_count) / (cumulative - previous_count)
+                        estimate = previous_bound + (upper_bound - previous_bound) * fraction
+                    return round(estimate * 1000, 3)
+                previous_bound, previous_count = upper_bound, cumulative
             return None
         draft = first_metric("vllm:spec_decode_num_draft_tokens_total", "vllm_spec_decode_num_draft_tokens_total")
         accepted = first_metric("vllm:spec_decode_num_accepted_tokens_total", "vllm_spec_decode_num_accepted_tokens_total")
@@ -217,7 +246,9 @@ async def local_vllm_metrics(request: Request):
                     "acceptance_rate": round(accepted / draft, 4) if draft and accepted is not None else None},
                 "token_latency_metrics": {name: first_metric(name) for name in ("vllm:time_to_first_token_seconds_sum", "vllm:time_to_first_token_seconds_count", "vllm:time_per_output_token_seconds_sum", "vllm:time_per_output_token_seconds_count", "vllm:inter_token_latency_seconds_sum", "vllm:inter_token_latency_seconds_count")},
                 "metrics_endpoint": worker._base_url + "/metrics",
-                "note": "Counters and histogram aggregates are process-wide vLLM metrics, not per-request samples. Histogram quantiles are not estimated here."}
+                "histogram_quantiles_ms": {family: {"p50": histogram_quantile(metric, 0.50), "p95": histogram_quantile(metric, 0.95)} for family, metric in {"ttft": "vllm:time_to_first_token_seconds", "tpot": "vllm:time_per_output_token_seconds", "inter_token_latency": "vllm:inter_token_latency_seconds"}.items()},
+                "inter_token_jitter_ms": (lambda p50, p95: round(p95 - p50, 3) if p50 is not None and p95 is not None else None)(histogram_quantile("vllm:inter_token_latency_seconds", 0.50), histogram_quantile("vllm:inter_token_latency_seconds", 0.95)),
+                "note": "Means and histogram quantiles are process-wide vLLM metrics, not per-request samples. Quantiles are approximate bucket interpolations; ITL spread (p95-p50) is a jitter proxy, not per-token standard deviation."}
     except Exception as exc:
         return {"available": False, "worker_id": worker.metadata.worker_id, "reason": f"vLLM metrics endpoint unavailable: {type(exc).__name__}"}
 
