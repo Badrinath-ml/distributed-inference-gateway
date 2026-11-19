@@ -15,7 +15,7 @@ from app.workers import LocalVLLMWorker, MockWorker
 class FakeSemanticRouter:
     def route(self, prompt: str):
         return {
-            "category": "general",
+            "category": "coding",
             "scores": {"coding": 0.1, "reasoning": 0.2, "general": 0.8},
             "top_score": 0.8,
             "margin": 0.6,
@@ -66,7 +66,7 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         page = await self.client.get("/dashboard")
         self.assertEqual(page.status_code, 200)
         self.assertIn("text/html", page.headers.get("content-type", ""))
-        self.assertIn("Evaluation Console", page.text)
+        self.assertIn("Distributed Speculative Decoder Inference", page.text)
 
         before = metrics.snapshot()["requests_total"]
         response = await self.client.post(
