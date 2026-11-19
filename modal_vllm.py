@@ -58,6 +58,8 @@ vllm_cache = modal.Volume.from_name(
     },
     port=PORT,
     target_concurrency=2,
+    max_concurrency=2,
+    max_containers=1,
 )
 class QwenVLLMServer:
     @modal.enter()
