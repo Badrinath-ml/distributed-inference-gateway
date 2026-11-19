@@ -76,11 +76,23 @@ VLLM_BASE_URL=https://YOUR-MODAL-SERVER-URL
 VLLM_MODEL=Qwen/Qwen3-1.7B
 VLLM_API_KEY=TOKEN_ID.TOKEN_SECRET
 WORKER1_MAX_CONCURRENCY=2
+WORKER1_TIMEOUT_SECONDS=300
+WORKER1_HEALTH_CHECK_ENABLED=false
+WORKER1_COLD_START_RETRIES=60
+WORKER1_COLD_START_RETRY_DELAY_SECONDS=2
 ```
 
 Keep `VLLM_API_KEY` out of Git, logs, screenshots and client-side code. The
 gateway sends it as `Authorization: Bearer ...`; Modal accepts this combined
 Proxy Token format. Restart the gateway after editing `.env`.
+
+**Scale-to-zero detail:** disable the gateway's periodic HTTP health probe for
+Worker 1. Otherwise its 15-second monitor would keep waking the Modal endpoint
+and prevent the five-minute idle scale-down. With probes disabled, the registry
+keeps the worker eligible and request failures are handled by the configured
+cold-start retry. The retry is deliberately limited to HTTP 503 responses and
+should only be enabled for this Modal Server; Modal documents 503 responses
+while no container is active or a container is starting.
 
 ## 5. Verify
 
