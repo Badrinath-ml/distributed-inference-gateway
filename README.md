@@ -1,4 +1,4 @@
-# Distributed Inference Gateway
+# Distributed Speculative Decoder Inference and Semantic Routing Gateway
 
 An OpenAI-compatible FastAPI gateway that classifies each prompt with a small
 CPU embedding model and routes the request to one of several registered
