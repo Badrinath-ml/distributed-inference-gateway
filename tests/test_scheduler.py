@@ -25,6 +25,18 @@ class WorkerSchedulerTestCase(unittest.TestCase):
         record = scheduler.select()
         scheduler.release(record)
 
+    def test_semantic_category_prefers_specialized_worker(self) -> None:
+        from app.workers.base import WorkerMetadata
+        local = MockWorker(worker_id="local")
+        cloud = MockWorker(worker_id="cloud")
+        local._metadata = WorkerMetadata(worker_id="local", provider="vllm", model="local-model", capabilities=frozenset({"chat", "streaming"}), max_concurrency=2, routing_categories=frozenset({"general", "reasoning"}))
+        cloud._metadata = WorkerMetadata(worker_id="cloud", provider="openrouter", model="gemma", capabilities=frozenset({"chat", "streaming"}), max_concurrency=2, routing_categories=frozenset({"coding"}))
+        self.registry.register(local)
+        self.registry.register(cloud)
+        scheduler = WorkerScheduler(self.registry)
+        self.assertEqual(scheduler.select(route_category="coding").worker_id, "cloud")
+        self.assertEqual(scheduler.select(route_category="general").worker_id, "local")
+
     def test_single_worker_selection_and_release(self) -> None:
         self.registry.register(MockWorker(worker_id="only"))
         scheduler = WorkerScheduler(self.registry)
