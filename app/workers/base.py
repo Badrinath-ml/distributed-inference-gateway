@@ -32,6 +32,7 @@ class WorkerMetadata:
     capabilities: frozenset[str]
     max_concurrency: int
     description: str = ""
+    routing_categories: frozenset[str] | None = None
 
     def __post_init__(self) -> None:
         if not self.worker_id:
@@ -53,6 +54,7 @@ class WorkerMetadata:
             "capabilities": sorted(self.capabilities),
             "max_concurrency": self.max_concurrency,
             "description": self.description,
+            "routing_categories": sorted(self.routing_categories) if self.routing_categories else ["*"],
         }
 
 
