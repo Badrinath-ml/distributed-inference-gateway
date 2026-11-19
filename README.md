@@ -106,7 +106,7 @@ Error mapping:
 
 Open `http://localhost:8080/dashboard` after starting the gateway. The console separates overall gateway metrics, local vLLM model telemetry, cloud worker gateway metrics, request testing, worker health/availability controls and recent request history. It can add/remove mock workers for controlled tests. These are in-process simulators, not Kubernetes pods. The browser test tool reports client-observed first byte and SSE content-event intervals; it does not infer token-level TPOT/ITL from SSE frames.
 
-**Metric boundaries:** local TTFT/TPOT/inter-token aggregates and speculative-decoding counters are read from the vLLM `/metrics` endpoint. The current implementation displays sum/count means where those metrics are exported; it does not pretend those process-level aggregates are per-request percentiles. Cloud worker gateway latency is grouped separately. The dashboard remains an unauthenticated development console and should not be exposed to untrusted networks.
+**Metric boundaries:** local TTFT/TPOT/inter-token aggregates and speculative-decoding counters are read from the vLLM `/metrics` endpoint. The current implementation displays sum/count means and approximate p50/p95 histogram quantiles where those metrics are exported. ITL p95-p50 is shown as a jitter proxy, not per-token standard deviation; these are process-level aggregates, not per-request traces. Cloud worker gateway latency is grouped separately. The dashboard remains an unauthenticated development console and should not be exposed to untrusted networks.
 
 ## Configuration
 
