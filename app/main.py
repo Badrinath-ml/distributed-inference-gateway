@@ -263,7 +263,7 @@ async def local_vllm_metrics(request: Request):
                 "inter_token_jitter_ms": (lambda p50, p95: round(p95 - p50, 3) if p50 is not None and p95 is not None else None)(histogram_quantile("vllm:inter_token_latency_seconds", 0.50), histogram_quantile("vllm:inter_token_latency_seconds", 0.95)),
                 "note": "Means and histogram quantiles are process-wide vLLM metrics, not per-request samples. Quantiles are approximate bucket interpolations; ITL spread (p95-p50) is a jitter proxy, not per-token standard deviation."}
     except Exception as exc:
-        return {"available": False, "worker_id": worker.metadata.worker_id, "reason": f"vLLM metrics endpoint unavailable: {type(exc).__name__}"}
+        return {"available": False, "worker_id": worker.metadata.worker_id, "reason": f"vLLM metrics endpoint unavailable: {type(exc).__name__}: {exc}"}
 
 
 @app.get("/api/metrics/workers")
