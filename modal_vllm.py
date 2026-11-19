@@ -49,7 +49,7 @@ vllm_cache = modal.Volume.from_name(
 # Private by default. A Proxy Token is required for every request.
 @app.server(
     image=vllm_image,
-    gpu="A10G",
+    gpu="A10",
     scaledown_window=5 * 60,
     startup_timeout=15 * 60,
     volumes={
