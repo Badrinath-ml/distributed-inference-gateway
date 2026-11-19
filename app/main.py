@@ -239,6 +239,13 @@ async def local_vllm_metrics(request: Request):
                     return round(estimate * 1000, 3)
                 previous_bound, previous_count = upper_bound, cumulative
             return None
+
+        def first_metric(*names):
+            for name in names:
+                if name in values:
+                    return values[name]
+            return None
+
         draft = first_metric("vllm:spec_decode_num_draft_tokens_total", "vllm_spec_decode_num_draft_tokens_total")
         accepted = first_metric("vllm:spec_decode_num_accepted_tokens_total", "vllm_spec_decode_num_accepted_tokens_total")
         profile = {"target_model": worker.metadata.model, "draft_model": "Qwen/Qwen3-0.6B", "dtype": "half", "max_model_len": 1024, "max_num_seqs": 2, "max_model_len": 1024, "gpu_memory_utilization": 0.80, "kv_cache_memory_mib": 512, "num_speculative_tokens": 2, "enforce_eager": "1", "flashinfer_sampler": "0"}
