@@ -241,11 +241,11 @@ async def local_vllm_metrics(request: Request):
             return None
         draft = first_metric("vllm:spec_decode_num_draft_tokens_total", "vllm_spec_decode_num_draft_tokens_total")
         accepted = first_metric("vllm:spec_decode_num_accepted_tokens_total", "vllm_spec_decode_num_accepted_tokens_total")
-        profile = {"target_model": worker.metadata.model, "draft_model": "Qwen/Qwen3-0.6B", "dtype": "half", "max_model_len": 1024, "max_num_seqs": 2, "kv_cache_memory_mib": 512, "num_speculative_tokens": 2}
+        profile = {"target_model": worker.metadata.model, "draft_model": "Qwen/Qwen3-0.6B", "dtype": "half", "max_model_len": 1024, "max_num_seqs": 2, "max_model_len": 1024, "gpu_memory_utilization": 0.80, "kv_cache_memory_mib": 512, "num_speculative_tokens": 2, "enforce_eager": "1", "flashinfer_sampler": "0"}
         profile_path = Path(__file__).resolve().parent.parent / "scripts" / "worker1.env"
         if profile_path.exists():
             profile_text = profile_path.read_text(encoding="utf-8")
-            for key, field in (("VLLM_DRAFT_MODEL", "draft_model"), ("VLLM_DTYPE", "dtype"), ("VLLM_MAX_MODEL_LEN", "max_model_len"), ("VLLM_MAX_NUM_SEQS", "max_num_seqs"), ("VLLM_KV_CACHE_MEMORY_BYTES", "kv_cache_memory_bytes"), ("VLLM_NUM_SPECULATIVE_TOKENS", "num_speculative_tokens")):
+            for key, field in (("VLLM_DRAFT_MODEL", "draft_model"), ("VLLM_DTYPE", "dtype"), ("VLLM_MAX_MODEL_LEN", "max_model_len"), ("VLLM_MAX_NUM_SEQS", "max_num_seqs"), ("VLLM_GPU_MEMORY_UTILIZATION", "gpu_memory_utilization"), ("VLLM_KV_CACHE_MEMORY_BYTES", "kv_cache_memory_bytes"), ("VLLM_NUM_SPECULATIVE_TOKENS", "num_speculative_tokens"), ("VLLM_ENFORCE_EAGER", "enforce_eager"), ("VLLM_USE_FLASHINFER_SAMPLER", "flashinfer_sampler")):
                 prefix = 'export ' + key + '="${' + key + ':-'
                 for line in profile_text.splitlines():
                     if line.startswith(prefix) and line.endswith('}"'):
