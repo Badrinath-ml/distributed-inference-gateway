@@ -204,7 +204,7 @@ async def local_vllm_metrics(request: Request):
                 continue
             match = re.match(r"^([^\s{]+)(?:\{[^}]*\})?\s+([-+0-9.eE]+)$", line)
             if match:
-                values[match.group(1)] = float(match.group(2))
+                values[match.group(1)] = values.get(match.group(1), 0.0) + float(match.group(2))
         def first_metric(*names):
             for name in names:
                 if name in values:
