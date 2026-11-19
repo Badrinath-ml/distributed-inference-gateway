@@ -71,6 +71,8 @@ async def generate_completion(
             body = await record.worker.chat_completion(payload)
         except WorkerUnavailableError:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             if not retry_on_connect_error or attempt >= 1:
                 raise
             logger.warning(
@@ -83,9 +85,13 @@ async def generate_completion(
             continue
         except BaseException:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             raise
 
         scheduler.release(record)
+        if attempt > 0:
+            metrics.record_failover_result(True)
         logger.info(
             "Routed completion to worker=%s provider=%s category=%s",
             record.worker_id,
@@ -127,6 +133,8 @@ async def stream_completion(
             stream = await record.worker.open_stream(payload)
         except WorkerUnavailableError:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             if not retry_on_connect_error or attempt >= 1:
                 raise
             logger.warning(
@@ -139,7 +147,11 @@ async def stream_completion(
             continue
         except BaseException:
             scheduler.release(record)
+            if attempt > 0:
+                metrics.record_failover_result(False)
             raise
+        if attempt > 0:
+            metrics.record_failover_result(True)
         break
 
     released = False
