@@ -116,6 +116,7 @@ class LocalVLLMWorker(BaseWorker):
         timeout_seconds: float = 120.0,
         max_concurrency: int = 2,
         health_timeout_seconds: float = 3.0,
+        enable_thinking: bool = False,
         transport: httpx.AsyncBaseTransport | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
@@ -130,6 +131,7 @@ class LocalVLLMWorker(BaseWorker):
         )
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
+        self._enable_thinking = enable_thinking
         self._health_timeout_seconds = health_timeout_seconds
         self._owns_client = client is None
         # Streaming reads have no read timeout: generation may legitimately
