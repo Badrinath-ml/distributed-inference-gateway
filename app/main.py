@@ -248,7 +248,7 @@ async def local_vllm_metrics(request: Request):
 
         draft = first_metric("vllm:spec_decode_num_draft_tokens_total", "vllm_spec_decode_num_draft_tokens_total")
         accepted = first_metric("vllm:spec_decode_num_accepted_tokens_total", "vllm_spec_decode_num_accepted_tokens_total")
-        profile = {"target_model": worker.metadata.model, "draft_model": "Qwen/Qwen3-0.6B", "dtype": "half", "max_model_len": 1024, "max_num_seqs": 2, "max_model_len": 1024, "gpu_memory_utilization": 0.80, "kv_cache_memory_mib": 512, "num_speculative_tokens": 2, "enforce_eager": "1", "flashinfer_sampler": "0"}
+        profile = {"target_model": worker.metadata.model, "draft_model": "Qwen/Qwen3-0.6B", "dtype": "half", "max_model_len": 1024, "max_num_seqs": 2, "gpu_memory_utilization": 0.80, "kv_cache_memory_mib": 512, "num_speculative_tokens": 2, "enforce_eager": "1", "flashinfer_sampler": "0"}
         profile_path = Path(__file__).resolve().parent.parent / "scripts" / "worker1.env"
         if profile_path.exists():
             profile_text = profile_path.read_text(encoding="utf-8")
