@@ -262,7 +262,7 @@ async def local_vllm_metrics(request: Request):
                     # Prometheus histograms are cumulative. The +Inf bucket has
                     # no finite midpoint, so use the last finite bound as a
                     # conservative estimate and explicitly label this result.
-                    midpoint = upper_bound if upper_bound == float("inf") else (previous_bound + upper_bound) / 2
+                    midpoint = previous_bound if upper_bound == float("inf") else (previous_bound + upper_bound) / 2
                     weighted_total += midpoint * bucket_count
                     observation_count += bucket_count
                 if upper_bound != float("inf"):
