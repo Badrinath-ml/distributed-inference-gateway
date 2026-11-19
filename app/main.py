@@ -246,10 +246,12 @@ async def local_vllm_metrics(request: Request):
         if profile_path.exists():
             profile_text = profile_path.read_text(encoding="utf-8")
             for key, field in (("VLLM_DRAFT_MODEL", "draft_model"), ("VLLM_DTYPE", "dtype"), ("VLLM_MAX_MODEL_LEN", "max_model_len"), ("VLLM_MAX_NUM_SEQS", "max_num_seqs"), ("VLLM_KV_CACHE_MEMORY_BYTES", "kv_cache_memory_bytes"), ("VLLM_NUM_SPECULATIVE_TOKENS", "num_speculative_tokens")):
-                match = re.search(rf'export {key}="\\$\\{{{key}:-([^}}]+)\\}}"', profile_text)
-                if match:
-                    raw_value = match.group(1)
-                    profile[field] = int(raw_value) if raw_value.isdigit() else raw_value
+                prefix = 'export ' + key + '="${' + key + ':-'
+                for line in profile_text.splitlines():
+                    if line.startswith(prefix) and line.endswith(' }"'.strip()):
+                        raw_value = line[len(prefix):-2]
+                        profile[field] = int(raw_value) if raw_value.isdigit() else raw_value
+                        break
         if "kv_cache_memory_bytes" in profile:
             profile["kv_cache_memory_mib"] = round(profile.pop("kv_cache_memory_bytes") / (1024 * 1024), 1)
         return {"available": True, "worker_id": worker.metadata.worker_id, "model": worker.metadata.model, "launch_profile": profile,
