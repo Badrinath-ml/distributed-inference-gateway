@@ -58,6 +58,13 @@ This document records what was **not** validated, so results are not overstated.
   87–90 °C and run-to-run clock/thermal variation. Those benchmarks are not
   repeated here.
 
+## Dashboard and worker-control limitations
+
+- Worker enable/disable changes in-memory scheduling availability; it does not start or stop the underlying vLLM/OpenRouter process.
+- Dashboard-created additional workers are deterministic mock workers for testing only. Kubernetes pod provisioning and scaling are not implemented.
+- The dashboard is an unauthenticated development console. Do not expose it to untrusted networks; worker controls and mock creation need authentication and authorization before production use.
+- Local vLLM TTFT/TPOT/inter-token values are process-level metrics. Means use Prometheus sum/count; no per-request token trace is retained. Cloud token-level timings are not available from the current OpenRouter adapter.
+
 ## Architecture limitations
 
 - **Single-process state.** Registry, health state, round-robin position and
@@ -85,13 +92,16 @@ This document records what was **not** validated, so results are not overstated.
   normalize chunk contents.
 - **No gateway-level auth, TLS, quotas or per-client rate limiting.** Deploy
   behind a reverse proxy or API gateway if those are required.
-- **No persistence or observability backend.** There are no Prometheus metrics,
-  traces or audit logs. `/health/workers` is the only structured runtime view.
-- **Semantic category does not select a worker.** Every worker advertises the
-  same `chat`/`streaming` capabilities, so routing is by health, availability
-  and load. The category is returned in `X-Semantic-Category` and logged, but it
-  is not a specialization key. Per-category worker pools would be a separate
-  feature.
+- **No gateway persistence or distributed observability backend.** Gateway
+  request samples and worker controls are process-local. Local vLLM Prometheus
+  metrics are scraped from its own `/metrics` endpoint, but there is no central
+  Prometheus, tracing backend or durable audit log.
+- **Semantic routing is category-specialized but intentionally simple.** The
+  embedding router classifies `coding`, `reasoning` and `general`. Local vLLM is
+  tagged for reasoning/general and OpenRouter for coding. The scheduler prefers
+  an eligible specialist and falls back to healthy, available workers when the
+  specialist is absent. This is not an LLM-based intent classifier and should
+  be evaluated against a labeled routing dataset before production use.
 - **Model choice is static per worker.** Capability routing is by `chat` and
   `streaming`; there is no per-request model selection, cost-aware routing or
   token-budget routing.
