@@ -98,6 +98,108 @@ class LocalVLLMWorkerTestCase(unittest.IsolatedAsyncioTestCase):
         )
         self.assertTrue(await self.worker.health_check())
 
+    async def test_optional_modal_proxy_token_is_sent_as_bearer(self) -> None:
+        seen = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen["authorization"] = request.headers.get("authorization")
+            return httpx.Response(200, json=completion_body())
+
+        worker = LocalVLLMWorker(
+            worker_id="modal-test",
+            base_url="http://modal-test",
+            model="Qwen/Qwen3-1.7B",
+            api_key="wk-test-id.ws-test-secret",
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            await worker.chat_completion(
+                {"messages": [{"role": "user", "content": "hello"}]}
+            )
+        finally:
+            await worker.aclose()
+
+        self.assertEqual(
+            seen["authorization"],
+            "Bearer wk-test-id.ws-test-secret",
+        )
+
+    async def test_disabled_health_probe_does_not_wake_modal_server(self) -> None:
+        worker = LocalVLLMWorker(
+            worker_id="modal-no-probe",
+            base_url="http://modal-test",
+            model="Qwen/Qwen3-1.7B",
+            health_check_enabled=False,
+            transport=httpx.MockTransport(
+                lambda request: (_ for _ in ()).throw(AssertionError("unexpected probe"))
+            ),
+        )
+        try:
+            self.assertTrue(await worker.health_check())
+        finally:
+            await worker.aclose()
+
+    async def test_modal_cold_start_503_is_retried_for_chat_and_stream(self) -> None:
+        chat_calls = 0
+
+        def chat_handler(request: httpx.Request) -> httpx.Response:
+            nonlocal chat_calls
+            chat_calls += 1
+            if chat_calls == 1:
+                return httpx.Response(503, text="container starting")
+            return httpx.Response(200, json=completion_body())
+
+        chat_worker = LocalVLLMWorker(
+            worker_id="modal-chat-retry",
+            base_url="http://modal-test",
+            model="Qwen/Qwen3-1.7B",
+            cold_start_retries=1,
+            cold_start_retry_delay_seconds=0.001,
+            transport=httpx.MockTransport(chat_handler),
+        )
+        try:
+            result = await chat_worker.chat_completion(
+                {"messages": [{"role": "user", "content": "hello"}]}
+            )
+            self.assertEqual(result["choices"][0]["message"]["content"], "Hello from stub.")
+            self.assertEqual(chat_calls, 2)
+        finally:
+            await chat_worker.aclose()
+
+        stream_calls = 0
+
+        def stream_handler(request: httpx.Request) -> httpx.Response:
+            nonlocal stream_calls
+            stream_calls += 1
+            if stream_calls == 1:
+                return httpx.Response(503, text="container starting")
+            return httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                content=sse_body(),
+            )
+
+        stream_worker = LocalVLLMWorker(
+            worker_id="modal-stream-retry",
+            base_url="http://modal-test",
+            model="Qwen/Qwen3-1.7B",
+            cold_start_retries=1,
+            cold_start_retry_delay_seconds=0.001,
+            transport=httpx.MockTransport(stream_handler),
+        )
+        try:
+            stream = await stream_worker.open_stream(
+                {"messages": [{"role": "user", "content": "hello"}], "stream": True}
+            )
+            try:
+                body = b"".join([chunk async for chunk in stream.body_iterator])
+            finally:
+                await stream.aclose()
+            self.assertIn(b"Hello", body)
+            self.assertEqual(stream_calls, 2)
+        finally:
+            await stream_worker.aclose()
+
     async def test_non_streaming_overrides_model_and_validates_choices(self) -> None:
         body = await self.worker.chat_completion(
             {

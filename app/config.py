@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     vllm_base_url: str
     vllm_model: str
     vllm_enable_thinking: bool = False
+    vllm_api_key: str | None = None
+    worker1_health_check_enabled: bool = True
+    worker1_cold_start_retries: int = Field(default=0, ge=0, le=120)
+    worker1_cold_start_retry_delay_seconds: float = Field(default=2.0, gt=0, le=10)
     worker1_enabled: bool = True
     worker1_id: str = "worker1-local-vllm"
     worker1_timeout_seconds: float = Field(default=120.0, gt=0)
