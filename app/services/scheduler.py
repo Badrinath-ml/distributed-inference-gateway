@@ -72,10 +72,17 @@ class WorkerScheduler:
         required_capabilities: Iterable[str] = (CHAT_CAPABILITY,),
         *,
         exclude: Iterable[str] = (),
+        route_category: str | None = None,
     ) -> WorkerRecord:
         required = frozenset(required_capabilities)
         excluded = frozenset(exclude)
         eligible = self._registry.eligible(required, excluded)
+        # Prefer explicitly specialized workers; retain a safe fallback when no
+        # eligible worker advertises this category (e.g. cloud is not configured).
+        if route_category:
+            specialized = [r for r in eligible if r.metadata.routing_categories is None or route_category in r.metadata.routing_categories]
+            if specialized:
+                eligible = specialized
         if not eligible:
             raise NoEligibleWorkersError(
                 required_capabilities=required,
