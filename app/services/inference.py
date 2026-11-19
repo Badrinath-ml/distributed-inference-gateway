@@ -36,9 +36,10 @@ def _select(
     exclude: set[str],
     *,
     retrying: bool,
+    route_category: str | None = None,
 ):
     try:
-        return scheduler.select(required_capabilities, exclude=exclude)
+        return scheduler.select(required_capabilities, exclude=exclude, route_category=route_category)
     except NoEligibleWorkersError as exc:
         if retrying:
             raise WorkerUnavailableError(
@@ -64,6 +65,7 @@ async def generate_completion(
             CHAT_REQUIRED,
             excluded,
             retrying=attempt > 0,
+            route_category=route_category,
         )
         try:
             body = await record.worker.chat_completion(payload)
@@ -92,7 +94,7 @@ async def generate_completion(
         )
         return JSONResponse(
             content=body,
-            headers=_response_headers(route_category, record.worker_id),
+            headers={**_response_headers(route_category, record.worker_id), "X-Routing-Decision": "semantic-specialized" if record.metadata.routing_categories and route_category in record.metadata.routing_categories else "load-health-fallback"},
         )
 
 
@@ -166,6 +168,7 @@ async def stream_completion(
         route_category,
     )
     headers = _response_headers(route_category, record.worker_id)
+    headers["X-Routing-Decision"] = "semantic-specialized" if record.metadata.routing_categories and route_category in record.metadata.routing_categories else "load-health-fallback"
     headers.update(
         {
             "Cache-Control": "no-cache",
