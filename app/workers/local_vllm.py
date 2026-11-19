@@ -125,7 +125,8 @@ class LocalVLLMWorker(BaseWorker):
             model=model,
             capabilities=DEFAULT_CAPABILITIES,
             max_concurrency=max_concurrency,
-            description="Local vLLM OpenAI-compatible inference server.",
+            description="Local vLLM worker for general and reasoning requests.",
+            routing_categories=frozenset({"general", "reasoning"}),
         )
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
