@@ -36,6 +36,12 @@ class MetricsStoreTests(unittest.TestCase):
         store = MetricsStore()
         store.record_failover()
         self.assertEqual(store.snapshot()["failovers_total"], 1)
+        store.record_failover_result(True)
+        store.record_failover_result(False)
+        snapshot = store.snapshot()
+        self.assertEqual(snapshot["failover_successes"], 1)
+        self.assertEqual(snapshot["failover_failures"], 1)
+        self.assertEqual(snapshot["failover_success_rate"], 0.5)
 
 
 if __name__ == "__main__":
