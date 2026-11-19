@@ -130,6 +130,22 @@ vllm:inter_token_latency_seconds_bucket{le="+Inf"} 10
         self.assertEqual(data["token_latency_metrics"]["tpot_mean_method"], "sum/count")
         self.assertEqual(data["inter_token_jitter_ms"], 10.0)
 
+    async def test_vllm_tpot_mean_falls_back_to_histogram_estimate(self) -> None:
+        exposition = """# TPOT histogram only; no sum/count series
+vllm:request_time_per_output_token_seconds_bucket{le="0.01"} 5
+vllm:request_time_per_output_token_seconds_bucket{le="0.02"} 10
+vllm:request_time_per_output_token_seconds_bucket{le="+Inf"} 10
+"""
+        async def fake_metrics_text(_worker):
+            return exposition
+        with mock.patch.object(LocalVLLMWorker, "metrics_text", fake_metrics_text):
+            response = await self.client.get("/api/metrics/vllm")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["available"], data)
+        self.assertEqual(data["token_latency_metrics"]["tpot_mean_method"], "histogram bucket estimate")
+        self.assertEqual(data["token_latency_metrics"]["tpot_mean_ms"], 10.0)
+
     async def test_worker_controls_and_dynamic_mock_registration(self) -> None:
         disabled = await self.client.put("/api/workers/dashboard-mock/availability", json={"available": False})
         self.assertEqual(disabled.status_code, 200)
