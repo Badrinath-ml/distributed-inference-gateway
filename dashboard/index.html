@@ -105,7 +105,7 @@ function renderRecent(rows){
 }
 $("addMockWorker").addEventListener("click",async()=>{
  const payload={worker_id:$("newMockId").value.trim(),latency_ms:Number($("newMockLatency").value),max_concurrency:Number($("newMockCapacity").value)};
- const r=await fetch("/api/workers/mock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const d=await r.json();$("workerActionStatus").textContent=r.ok?d.message:(d.detail||"Could not add worker");if(r.ok)refresh();
+ const r=await fetch("/api/workers/mock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const d=await r.json();$("workerActionStatus").textContent=r.ok?d.message:(d.detail||"Could not add worker");if(r.ok){refresh();loadFaultControls()}
 });
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));["overview","requests","workers","history"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab))}));
 async function sendOne(prompt,stream){
