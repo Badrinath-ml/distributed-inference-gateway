@@ -10,6 +10,7 @@ optional `.env` file in the process working directory. `.env` is not committed;
 |---|---|---|
 | `VLLM_BASE_URL` | required | Base URL of the OpenAI-compatible vLLM server, e.g. `http://localhost:8000`. |
 | `VLLM_MODEL` | required | Model name sent upstream, e.g. `Qwen/Qwen3-1.7B`. |
+| `VLLM_API_KEY` | unset | Optional bearer credential for private Modal Proxy Token auth; set to `TOKEN_ID.TOKEN_SECRET`. |
 | `WORKER1_ENABLED` | `true` | Set `false` to skip Worker 1. |
 | `WORKER1_ID` | `worker1-local-vllm` | Registry identifier. |
 | `WORKER1_TIMEOUT_SECONDS` | `120` | Non-streaming request timeout. |
