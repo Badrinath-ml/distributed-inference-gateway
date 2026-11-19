@@ -63,7 +63,7 @@ This document records what was **not** validated, so results are not overstated.
 - Worker enable/disable changes in-memory scheduling availability; it does not start or stop the underlying vLLM/OpenRouter process.
 - Dashboard-created additional workers are deterministic mock workers for testing only. Kubernetes pod provisioning and scaling are not implemented.
 - The dashboard is an unauthenticated development console. Do not expose it to untrusted networks; worker controls and mock creation need authentication and authorization before production use.
-- Local vLLM TTFT/TPOT/inter-token values are process-level metrics. Means use Prometheus sum/count; no per-request token trace is retained. Cloud token-level timings are not available from the current OpenRouter adapter.
+- Local vLLM TTFT/TPOT/inter-token values are process-level metrics. Means use Prometheus sum/count and p50/p95 are approximate histogram-bucket interpolations; ITL p95-p50 is only a jitter proxy, not per-token standard deviation. No per-request token trace is retained. Cloud token-level timings are not available from the current OpenRouter adapter.
 
 ## Architecture limitations
 
