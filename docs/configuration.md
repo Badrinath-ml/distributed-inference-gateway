@@ -109,7 +109,7 @@ Local + cloud:
 VLLM_BASE_URL=http://localhost:8000
 VLLM_MODEL=Qwen/Qwen3-1.7B
 OPENROUTER_API_KEY=replace-me
-OPENROUTER_MODEL=liquid/lfm-3-1.7b:free
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
 ```
 
 ## Validation and secret hygiene
@@ -124,6 +124,8 @@ OPENROUTER_MODEL=liquid/lfm-3-1.7b:free
 
 
 ## Evaluation dashboard
+
+The dashboard supports worker enable/disable, and adding/removing in-process mock workers. These controls change gateway registry state only; they do not provision or stop external worker processes. The dashboard is an unauthenticated development interface and must not be exposed publicly.
 
 - `/dashboard` serves the built-in browser evaluation console.
 - `DASHBOARD_FAULT_INJECTION_ENABLED=false` is the safe default. Set it to
