@@ -22,7 +22,6 @@ class Settings(BaseSettings):
     worker1_id: str = "worker1-local-vllm"
     worker1_timeout_seconds: float = Field(default=120.0, gt=0)
     worker1_max_concurrency: int = Field(default=2, ge=1, le=64)
-    vllm_enable_thinking: bool = False
 
     # Worker 2: OpenRouter cloud worker (optional).
     openrouter_enabled: bool = True
