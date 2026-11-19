@@ -121,6 +121,7 @@ async def stream_completion(
             STREAM_REQUIRED,
             excluded,
             retrying=attempt > 0,
+            route_category=route_category,
         )
         try:
             stream = await record.worker.open_stream(payload)
