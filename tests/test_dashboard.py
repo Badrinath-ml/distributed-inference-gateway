@@ -126,6 +126,8 @@ vllm:inter_token_latency_seconds_bucket{le="+Inf"} 10
         self.assertEqual(data["launch_profile"]["draft_model"], "Qwen/Qwen3-0.6B")
         self.assertEqual(data["launch_profile"]["kv_cache_memory_mib"], 512)
         self.assertEqual(data["histogram_quantiles_ms"]["ttft"]["p50"], 100.0)
+        self.assertEqual(data["token_latency_metrics"]["tpot_mean_ms"], 50.0)
+        self.assertEqual(data["token_latency_metrics"]["tpot_mean_method"], "sum/count")
         self.assertEqual(data["inter_token_jitter_ms"], 10.0)
 
     async def test_worker_controls_and_dynamic_mock_registration(self) -> None:
