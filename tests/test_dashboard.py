@@ -77,7 +77,7 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(response.headers.get("x-request-id"))
         self.assertEqual(response.headers.get("x-semantic-category"), "coding")
         self.assertEqual(response.headers.get("x-worker-id"), "dashboard-mock")
-        self.assertEqual(response.headers.get("x-routing-decision"), "load-health-fallback")
+        self.assertEqual(response.headers.get("x-routing-decision"), "semantic-specialized")
 
         overview = await self.client.get("/api/metrics/overview")
         self.assertEqual(overview.status_code, 200)
