@@ -42,6 +42,7 @@ def _select(
         return scheduler.select(required_capabilities, exclude=exclude, route_category=route_category)
     except NoEligibleWorkersError as exc:
         if retrying:
+            metrics.record_failover_result(False)
             raise WorkerUnavailableError(
                 "no alternative worker is available after a connection failure"
             ) from exc
@@ -150,8 +151,6 @@ async def stream_completion(
             if attempt > 0:
                 metrics.record_failover_result(False)
             raise
-        if attempt > 0:
-            metrics.record_failover_result(True)
         break
 
     released = False
@@ -168,11 +167,15 @@ async def stream_completion(
         await release_once()
 
     async def event_stream():
+        completed = False
         try:
             async for chunk in stream.body_iterator:
                 yield chunk
+            completed = True
         finally:
             await cleanup()
+            if attempt > 0:
+                metrics.record_failover_result(completed)
 
     logger.info(
         "Routed stream to worker=%s provider=%s category=%s",
