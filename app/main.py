@@ -202,7 +202,7 @@ async def local_vllm_metrics(request: Request):
         for line in raw.splitlines():
             if not line or line.startswith("#"):
                 continue
-            match = re.match(r"^([^\\s{]+)(?:\\{[^}]*\\})?\\s+([-+0-9.eE]+)$", line)
+            match = re.match(r"^([^\s{]+)(?:\{[^}]*\})?\s+([-+0-9.eE]+)$", line)
             if match:
                 values[match.group(1)] = float(match.group(2))
         def first_metric(*names):
@@ -228,7 +228,7 @@ async def metrics_workers(request: Request):
 
 
 @app.put("/api/workers/{worker_id}/availability")
-async def set_worker_availability(worker_id: str, payload: dict = Body(...), request: Request = None):
+async def set_worker_availability(worker_id: str, request: Request, payload: dict = Body(...)):
     available = payload.get("available")
     if not isinstance(available, bool):
         raise HTTPException(status_code=400, detail="'available' must be a boolean.")
