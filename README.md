@@ -72,6 +72,27 @@ MOCK_WORKER_ENABLED=true WORKER1_ENABLED=false \
 `VLLM_BASE_URL` and `VLLM_MODEL` are required by the settings model. Keep them
 in `.env` even when Worker 1 is disabled.
 
+## Deploy Worker 1 on Modal
+
+The repository includes a private Modal deployment for the existing Qwen3
+speculative-decoding worker. It preserves the target/draft models and validated
+inference settings, stores model caches in Modal Volumes, and requires a Modal
+Proxy Token. The FastAPI gateway remains separate and connects through
+`VLLM_BASE_URL` plus `VLLM_API_KEY`.
+
+See [docs/modal-deployment.md](docs/modal-deployment.md) for setup, deployment,
+verification, cost controls and shutdown instructions.
+
+```bash
+pip install -r requirements-modal.txt
+modal setup
+modal deploy modal_vllm.py
+```
+
+Modal Starter includes a monthly compute-credit allowance, not unlimited free
+GPU use. Check the current [Modal pricing](https://modal.com/pricing) and the
+deployment guide before running benchmarks.
+
 ## API
 
 | Method | Path | Purpose |
