@@ -122,6 +122,8 @@ vllm:inter_token_latency_seconds_bucket{le="+Inf"} 10
         data = response.json()
         self.assertTrue(data["available"])
         self.assertEqual(data["speculative_decoding"]["acceptance_rate"], 0.6)
+        self.assertEqual(data["launch_profile"]["draft_model"], "Qwen/Qwen3-0.6B")
+        self.assertEqual(data["launch_profile"]["kv_cache_memory_mib"], 512)
         self.assertEqual(data["histogram_quantiles_ms"]["ttft"]["p50"], 100.0)
         self.assertEqual(data["inter_token_jitter_ms"], 10.0)
 
