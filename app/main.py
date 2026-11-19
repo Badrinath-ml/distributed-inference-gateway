@@ -50,6 +50,7 @@ def build_workers() -> list[BaseWorker]:
                 timeout_seconds=settings.worker1_timeout_seconds,
                 max_concurrency=settings.worker1_max_concurrency,
                 health_timeout_seconds=settings.health_check_timeout_seconds,
+                enable_thinking=settings.vllm_enable_thinking,
             )
         )
 
@@ -246,6 +247,33 @@ async def local_vllm_metrics(request: Request):
                     return values[name]
             return None
 
+        def histogram_mean_ms(metric_name: str):
+            """Estimate a mean from histogram buckets only when sum/count are absent."""
+            series = sorted(buckets.get(metric_name, {}).items(), key=lambda item: item[0])
+            if not series:
+                return None
+            previous_bound = 0.0
+            previous_count = 0.0
+            weighted_total = 0.0
+            observation_count = 0.0
+            for upper_bound, cumulative in series:
+                bucket_count = max(0.0, cumulative - previous_count)
+                if bucket_count:
+                    # Prometheus histograms are cumulative. The +Inf bucket has
+                    # no finite midpoint, so use the last finite bound as a
+                    # conservative estimate and explicitly label this result.
+                    midpoint = previous_bound if upper_bound == float("inf") else (previous_bound + upper_bound) / 2
+                    weighted_total += midpoint * bucket_count
+                    observation_count += bucket_count
+                if upper_bound != float("inf"):
+                    previous_bound = upper_bound
+                previous_count = cumulative
+            return round(weighted_total / observation_count * 1000, 3) if observation_count else None
+
+        tpot_sum = first_metric("vllm:request_time_per_output_token_seconds_sum", "vllm:time_per_output_token_seconds_sum")
+        tpot_count = first_metric("vllm:request_time_per_output_token_seconds_count", "vllm:time_per_output_token_seconds_count")
+        tpot_mean_ms = (tpot_sum / tpot_count * 1000) if tpot_sum is not None and tpot_count else histogram_mean_ms("vllm:request_time_per_output_token_seconds")
+        tpot_mean_method = "sum/count" if tpot_sum is not None and tpot_count else ("histogram bucket estimate" if tpot_mean_ms is not None else None)
         draft = first_metric("vllm:spec_decode_num_draft_tokens_total", "vllm_spec_decode_num_draft_tokens_total")
         accepted = first_metric("vllm:spec_decode_num_accepted_tokens_total", "vllm_spec_decode_num_accepted_tokens_total")
         profile = {"target_model": worker.metadata.model, "draft_model": "Qwen/Qwen3-0.6B", "dtype": "half", "max_model_len": 1024, "max_num_seqs": 2, "gpu_memory_utilization": 0.80, "kv_cache_memory_mib": 512, "num_speculative_tokens": 2, "enforce_eager": "1", "flashinfer_sampler": "0"}
@@ -264,9 +292,19 @@ async def local_vllm_metrics(request: Request):
         return {"available": True, "worker_id": worker.metadata.worker_id, "model": worker.metadata.model, "launch_profile": profile,
                 "speculative_decoding": {"draft_tokens_total": draft, "accepted_tokens_total": accepted,
                     "acceptance_rate": round(accepted / draft, 4) if draft and accepted is not None else None},
-                "token_latency_metrics": {name: first_metric(name) for name in ("vllm:time_to_first_token_seconds_sum", "vllm:time_to_first_token_seconds_count", "vllm:time_per_output_token_seconds_sum", "vllm:time_per_output_token_seconds_count", "vllm:inter_token_latency_seconds_sum", "vllm:inter_token_latency_seconds_count")},
+                "token_latency_metrics": {
+                    "vllm:time_to_first_token_seconds_sum": first_metric("vllm:time_to_first_token_seconds_sum"),
+                    "vllm:time_to_first_token_seconds_count": first_metric("vllm:time_to_first_token_seconds_count"),
+                    "tpot_sum": tpot_sum,
+                    "tpot_count": tpot_count,
+                    "tpot_mean_ms": round(tpot_mean_ms, 3) if tpot_mean_ms is not None else None,
+                    "tpot_mean_method": tpot_mean_method,
+                    "vllm:inter_token_latency_seconds_sum": first_metric("vllm:inter_token_latency_seconds_sum"),
+                    "vllm:inter_token_latency_seconds_count": first_metric("vllm:inter_token_latency_seconds_count"),
+                },
+                "tpot_metric_name": next((name for name in ("vllm:request_time_per_output_token_seconds", "vllm:time_per_output_token_seconds") if name in buckets), None),
                 "metrics_endpoint": worker._base_url + "/metrics",
-                "histogram_quantiles_ms": {family: {"p50": histogram_quantile(metric, 0.50), "p95": histogram_quantile(metric, 0.95)} for family, metric in {"ttft": "vllm:time_to_first_token_seconds", "tpot": "vllm:time_per_output_token_seconds", "inter_token_latency": "vllm:inter_token_latency_seconds"}.items()},
+                "histogram_quantiles_ms": {family: {"p50": histogram_quantile(metric, 0.50), "p95": histogram_quantile(metric, 0.95)} for family, metric in {"ttft": "vllm:time_to_first_token_seconds", "tpot": next((name for name in ("vllm:request_time_per_output_token_seconds", "vllm:time_per_output_token_seconds") if name in buckets), "vllm:request_time_per_output_token_seconds"), "inter_token_latency": "vllm:inter_token_latency_seconds"}.items()},
                 "inter_token_jitter_ms": (lambda p50, p95: round(p95 - p50, 3) if p50 is not None and p95 is not None else None)(histogram_quantile("vllm:inter_token_latency_seconds", 0.50), histogram_quantile("vllm:inter_token_latency_seconds", 0.95)),
                 "note": "Means and histogram quantiles are process-wide vLLM metrics, not per-request samples. Quantiles are approximate bucket interpolations; ITL spread (p95-p50) is a jitter proxy, not per-token standard deviation."}
     except Exception as exc:

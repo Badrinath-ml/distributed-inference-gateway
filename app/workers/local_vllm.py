@@ -116,6 +116,7 @@ class LocalVLLMWorker(BaseWorker):
         timeout_seconds: float = 120.0,
         max_concurrency: int = 2,
         health_timeout_seconds: float = 3.0,
+        enable_thinking: bool = False,
         transport: httpx.AsyncBaseTransport | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
@@ -130,6 +131,7 @@ class LocalVLLMWorker(BaseWorker):
         )
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
+        self._enable_thinking = enable_thinking
         self._health_timeout_seconds = health_timeout_seconds
         self._owns_client = client is None
         # Streaming reads have no read timeout: generation may legitimately
@@ -155,6 +157,12 @@ class LocalVLLMWorker(BaseWorker):
     def _request_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
         request_payload = payload.copy()
         request_payload["model"] = self._metadata.model
+        # Qwen3 chat templates emit an explicit <think> channel by default.
+        # Disable it for user-facing completions unless an operator opts in.
+        if self._metadata.model.lower().startswith("qwen3") or "qwen3-" in self._metadata.model.lower():
+            template_kwargs = dict(request_payload.get("chat_template_kwargs") or {})
+            template_kwargs["enable_thinking"] = False
+            request_payload["chat_template_kwargs"] = template_kwargs
         return request_payload
 
     async def health_check(self) -> bool:
