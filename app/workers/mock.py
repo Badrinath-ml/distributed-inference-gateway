@@ -68,6 +68,7 @@ class MockWorker(BaseWorker):
             capabilities=capabilities,
             max_concurrency=max_concurrency,
             description="Deterministic mock worker; no external dependencies.",
+            routing_categories=frozenset({"coding", "reasoning", "general"}),
         )
         self.latency_ms = max(0.0, latency_ms)
         self.health_latency_ms = max(0.0, health_latency_ms)
