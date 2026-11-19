@@ -75,6 +75,8 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers.get("x-request-id"))
+        self.assertEqual(response.headers.get("x-semantic-category"), "coding")
+        self.assertEqual(response.headers.get("x-worker-id"), "dashboard-mock")
 
         overview = await self.client.get("/api/metrics/overview")
         self.assertEqual(overview.status_code, 200)
@@ -85,8 +87,12 @@ class DashboardApiTestCase(unittest.IsolatedAsyncioTestCase):
             {item["worker_id"] for item in workers.json()["workers"]},
             {"dashboard-mock", "dashboard-local"},
         )
+        self.assertIn("worker_metrics", overview.json())
         recent = await self.client.get("/api/metrics/recent?limit=10")
         self.assertTrue(recent.json()["requests"])
+        vllm = await self.client.get("/api/metrics/vllm")
+        self.assertEqual(vllm.status_code, 200)
+        self.assertFalse(vllm.json()["available"])
 
     async def test_worker_controls_and_dynamic_mock_registration(self) -> None:
         disabled = await self.client.put("/api/workers/dashboard-mock/availability", json={"available": False})
