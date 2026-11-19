@@ -11,10 +11,11 @@ inference workers:
 - **Worker 3** — deterministic mock worker for development and tests (disabled
   by default, requires no GPU, network or API key).
 
-The gateway keeps one process-wide view of worker health and load, routes by
-capability and least in-flight/capacity ratio, retries once only on connection
-failures before any response bytes flow, and maps worker failures to explicit
-HTTP status codes.
+Semantic routing prefers the cloud worker for `coding` and local vLLM for
+`reasoning` and `general`. If a specialist is disabled, unhealthy or absent,
+the gateway falls back to the healthy, available least-loaded worker. The
+registry tracks health, operator availability and in-flight requests; safe
+connection-phase failures may be retried once on another worker.
 
 ## Status
 
@@ -80,6 +81,10 @@ in `.env` even when Worker 1 is disabled.
 | `GET` | `/dashboard` | Browser-based inference evaluation console. |
 | `GET` | `/api/metrics/overview` | Bounded request telemetry, latency percentiles, errors and failovers. |
 | `GET` | `/api/metrics/workers` | Worker registry snapshot for dashboard. |
+| `GET` | `/api/metrics/vllm` | Local vLLM Prometheus scrape: speculative-decoding counters and exported TTFT/TPOT/inter-token aggregates. |
+| `PUT` | `/api/workers/{worker_id}/availability` | Enable or drain a registered worker from new scheduling. |
+| `POST` | `/api/workers/mock` | Add an in-process mock worker for routing/fault tests. |
+| `DELETE` | `/api/workers/{worker_id}` | Remove a mock worker when it has no in-flight requests. |
 | `GET` | `/api/metrics/recent?limit=100` | Recent request samples (maximum 200). |
 | `GET` | `/api/testing/capabilities` | Reports whether mock-only fault injection is enabled. |
 | `POST` | `/api/testing/faults` | Explicitly confirmed mock-worker fault action; disabled by default. |
@@ -99,7 +104,9 @@ Error mapping:
 | Worker/provider rate limit | `429` with `Retry-After` when supplied |
 | Worker/provider error, timeout, invalid response | `502` |
 
-Open `http://localhost:8080/dashboard` after starting the gateway to use the evaluation console. It includes runtime telemetry, client-side request testing, worker status and mock-only fault injection. The browser test tool reports client-observed first byte and SSE content-event intervals; it does not infer token-level TPOT/ITL from SSE frames.
+Open `http://localhost:8080/dashboard` after starting the gateway. The console separates overall gateway metrics, local vLLM model telemetry, cloud worker gateway metrics, request testing, worker health/availability controls and recent request history. It can add/remove mock workers for controlled tests. These are in-process simulators, not Kubernetes pods. The browser test tool reports client-observed first byte and SSE content-event intervals; it does not infer token-level TPOT/ITL from SSE frames.
+
+**Metric boundaries:** local TTFT/TPOT/inter-token aggregates and speculative-decoding counters are read from the vLLM `/metrics` endpoint. The current implementation displays sum/count means where those metrics are exported; it does not pretend those process-level aggregates are per-request percentiles. Cloud worker gateway latency is grouped separately. The dashboard remains an unauthenticated development console and should not be exposed to untrusted networks.
 
 ## Configuration
 
